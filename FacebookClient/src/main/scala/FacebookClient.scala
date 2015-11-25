@@ -23,7 +23,12 @@ import spray.client.pipelining.{ Post, sendReceive }
 
 import spray.httpx._
 
-case class RegisterUser(id: Int)
+case class RegisterUser(userId: Int)
+case class GetUser(userId: Int)
+case class RegisterPage(pageId: Int)
+case class GetPage(pageId: Int)
+case class likePage(pageId: Int,userId: Int)
+case class pagePost(pageId: Int)
 
 object FacebookClient extends App {
 
@@ -38,29 +43,62 @@ object FacebookClient extends App {
       userActors += system.actorOf(Props(new Client(system)), name = "User" + i)
       pageActors += system.actorOf(Props(new Client(system)), name = "Page" + i)
     }
-    userActors(0)!RegisterUser(0)
-    userActors(1)!RegisterUser(1)
-    userActors(2)!RegisterUser(2)
-    userActors(3)!RegisterUser(3)
-    userActors(4)!RegisterUser(4)
-    userActors(5)!RegisterUser(5)
-    userActors(6)!RegisterUser(6)
     
-
+    for(i<- 0 until 10){
+      userActors(i)!RegisterUser(i)
+      pageActors(i)!RegisterPage(i)
+    }
+    for(i<- 0 until 10)
+    userActors(1)!GetPage(i)
+ 
+    userActors(1) ! likePage(0,1)
+    
+    userActors(2) ! pagePost(0)
   }
 
 }
 
 class Client(system: ActorSystem) extends Actor {
-
+  import system.dispatcher
+  val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
   def receive = {
-    case RegisterUser(id: Int) => {
-      import system.dispatcher
-      val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
+    case RegisterUser(userId: Int) => {
+      
       val gender = Array("male","female")
-      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId="+id+"&name="+Random.alphanumeric.take(Random.nextInt(140)).mkString+"&gender="+Random.shuffle(gender.toList).head))
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId="+userId+"&name="+Random.alphanumeric.take(Random.nextInt(50)).mkString+"&gender="+Random.shuffle(gender.toList).head))
       //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
     }
+    case RegisterPage(pageId: Int) => {
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerPage?pageId="+pageId+"&pageName="+Random.alphanumeric.take(Random.nextInt(50)).mkString))
+      //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
+      
+    }
+    case GetUser(userId: Int) => {
+      val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/user/"+userId))
+      //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
+      response.foreach(
+        response=>
+         println(s"User Profile :\n${response.entity.asString}")                                              
+      )
+    }
+    
+    case GetPage(pageId: Int) => {
+      val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/page/"+pageId))
+      //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
+      response.foreach(
+        response=>
+         println(s"Page Info :\n${response.entity.asString}")                                              
+      )
+    }
+    
+    case likePage(pageId: Int,userId: Int) =>{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/likePage?pageId="+pageId+"&userId="+userId))
+    }
+    
+    case pagePost(pageId: Int) =>{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/pagePost?pageId="+pageId+"&post="+Random.alphanumeric.take(Random.nextInt(140)).mkString))
+    }
+    
   }
 }
 
