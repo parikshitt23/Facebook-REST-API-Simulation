@@ -35,6 +35,10 @@ case class getPageFeed(pageId: Int)
 case class getUserFeed(userId: Int) 
 case class deletePagePost(pageId: Int,postId: Int)
 case class deleteUserPost(userId: Int, fromUser:Int, postId:Int) 
+case class getFriendList(userId:Int)
+case class getFriendRequestList(userId:Int)
+case class sendFriendRequest(userId:Int, friendId:Int)
+case class approveDeclineRequest(userId:Int, friendId:Int, decision:Boolean) 
 
 object FacebookClient extends App {
 
@@ -139,6 +143,32 @@ class Client(system: ActorSystem) extends Actor {
     
     case deleteUserPost(userId: Int, fromUser:Int, postId:Int) =>{
       val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/deletePost?userId="+userId+"&fromUser="+fromUser+"&postId="+postId))
+    }
+    
+    case getFriendList(userId:Int) =>{
+      val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/user/"+userId+"/friendsList"))
+      //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
+      response.foreach(
+        response=>
+         println(s"Friend List :\n${response.entity.asString}")                                              
+      ) 
+    }
+    
+    case getFriendRequestList(userId:Int) =>{
+      val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/user/"+userId+"/friendRequestsList"))
+      //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
+      response.foreach(
+        response=>
+         println(s"Friend Request List :\n${response.entity.asString}")                                              
+      ) 
+    }
+    
+    case sendFriendRequest(userId:Int, friendId:Int) =>{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/friendRequest?userId="+userId+"&friendId="+friendId))
+    }
+    
+    case approveDeclineRequest(userId:Int, friendId:Int, decision:Boolean) =>{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/approveDeclineRequest?userId="+userId+"&friendId="+friendId+"&decision="+decision))
     }
     
    
