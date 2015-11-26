@@ -8,11 +8,16 @@ import spray.http.StatusCodes._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 import spray.json.DefaultJsonProtocol
+//import spray.json.DefaultJsonProtocol._
+
 
 case class User(userId: Int, name: String, gender: String)
 case class Page(pageId: Int, pageName: String, likes: Int)
 case class PagePost(pageId: Int, posts: List[String])
 case class Post(postId:Int, admin_creator:Int, post:String)
+
+case class FriendList(userId : Int, friendList : List[User])
+case class FriendRequestsList (userId : Int, requestsList : List[User])
 
 object User extends DefaultJsonProtocol {
   implicit val userFormat = jsonFormat3(User.apply)
@@ -25,6 +30,12 @@ object PagePost extends DefaultJsonProtocol {
 }
 object Post extends DefaultJsonProtocol {
   implicit var pageFormat = jsonFormat3(Post.apply)
+}
+object  FriendList extends DefaultJsonProtocol {
+  implicit var pageFormat = jsonFormat2(FriendList.apply)
+}
+object  FriendRequestsList extends DefaultJsonProtocol {
+  implicit var pageFormat = jsonFormat2(FriendRequestsList.apply)
 }
 
 class ServerActor extends HttpServiceActor {
@@ -45,6 +56,8 @@ trait UserRoute extends HttpService {
   var pageLikeList = scala.collection.mutable.Map[Int, List[Int]]()
  // var pagePostList1 = scala.collection.mutable.Map[Int, PagePost]()
   var pagePostList = scala.collection.mutable.Map[Int, List[Post]]()
+  var friendList = scala.collection.mutable.Map[Int, List[User]]()
+  var friendRequestsList = scala.collection.mutable.Map[Int, List[User]]()
    var postIdCreator = 1;
 
   val routes = {
@@ -130,7 +143,37 @@ trait UserRoute extends HttpService {
             }
           }
         }
-      } 
+      } ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("user"/ IntNumber / "friendsList"){ (userId) =>
+          get{
+            friendList.get(userId) match {
+              case Some(userRoute) => complete(userRoute)
+              case None            => complete(NotFound -> s"No friends for user id $userId was founds!")
+            }
+          }
+          
+        } ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("user"/ IntNumber / "friendRequestsList"){ (userId) =>
+          get{
+            friendRequestsList.get(userId) match {
+              case Some(userRoute) => complete(userRoute)
+              case None            => complete(NotFound -> s"No friends REQUESTS for user id $userId was founds!")
+            }
+          }
+          
+        }
+       }
+      } ~ post{
+        path("friendRequest") {
+          parameters("userId".as[Int], "friendId".as[Int]){ (userId, friendId) =>
+            friendRequest(userId, friendId)
+            complete{
+              "OK"
+            }
+            
+          }
+        }
+      }
 
   }
 
@@ -201,6 +244,16 @@ trait UserRoute extends HttpService {
       pagePostList(pageId) = tempPostList
     }
     
+  }
+  
+  def friendRequest(userId : Int, friendId : Int) = {
+    if(!friendRequestsList.contains(userId)){
+      friendRequestsList += userId -> List(userList(friendId))
+    } else{
+      if(!friendRequestsList(userId).contains(userList(friendId))){
+      friendRequestsList(userId) ::= userList(friendId)
+      }
+    }
   }
   
 
