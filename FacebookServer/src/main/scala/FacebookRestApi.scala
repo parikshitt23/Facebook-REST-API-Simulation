@@ -10,14 +10,13 @@ import scala.util.Random
 import spray.json.DefaultJsonProtocol
 //import spray.json.DefaultJsonProtocol._
 
-
 case class User(userId: Int, name: String, gender: String)
 case class Page(pageId: Int, pageName: String, likes: Int)
-case class PagePost(pageId: Int, posts: List[String])
-case class Post(postId:Int, admin_creator:Int, post:String)
+case class UserPost(postId: Int, admin_creator: Int, post: String)
+case class Post(postId: Int, admin_creator: Int, post: String)
 
-case class FriendList(userId : Int, friendList : List[User])
-case class FriendRequestsList (userId : Int, requestsList : List[User])
+case class FriendList(userId: Int, friendList: List[User])
+case class FriendRequestsList(userId: Int, requestsList: List[User])
 
 object User extends DefaultJsonProtocol {
   implicit val userFormat = jsonFormat3(User.apply)
@@ -25,16 +24,16 @@ object User extends DefaultJsonProtocol {
 object Page extends DefaultJsonProtocol {
   implicit var pageFormat = jsonFormat3(Page.apply)
 }
-object PagePost extends DefaultJsonProtocol {
-  implicit var pagePostFormat = jsonFormat2(PagePost.apply)
+object UserPost extends DefaultJsonProtocol {
+  implicit var pagePostFormat = jsonFormat3(UserPost.apply)
 }
 object Post extends DefaultJsonProtocol {
   implicit var pageFormat = jsonFormat3(Post.apply)
 }
-object  FriendList extends DefaultJsonProtocol {
+object FriendList extends DefaultJsonProtocol {
   implicit var pageFormat = jsonFormat2(FriendList.apply)
 }
-object  FriendRequestsList extends DefaultJsonProtocol {
+object FriendRequestsList extends DefaultJsonProtocol {
   implicit var pageFormat = jsonFormat2(FriendRequestsList.apply)
 }
 
@@ -54,11 +53,13 @@ trait UserRoute extends HttpService {
   var userList = scala.collection.mutable.Map[Int, User]()
   var pageList = scala.collection.mutable.Map[Int, Page]()
   var pageLikeList = scala.collection.mutable.Map[Int, List[Int]]()
- // var pagePostList1 = scala.collection.mutable.Map[Int, PagePost]()
+  // var pagePostList1 = scala.collection.mutable.Map[Int, PagePost]()
   var pagePostList = scala.collection.mutable.Map[Int, List[Post]]()
+  var userPostList = scala.collection.mutable.Map[Int, List[UserPost]]()
   var friendList = scala.collection.mutable.Map[Int, List[User]]()
   var friendRequestsList = scala.collection.mutable.Map[Int, List[User]]()
-   var postIdCreator = 1;
+  var postIdCreator = 1
+  var postId_Creator = 1
 
   val routes = {
     respondWithMediaType(MediaTypes.`application/json`) {
@@ -107,7 +108,7 @@ trait UserRoute extends HttpService {
             }
           }
         }
-      }~ post {
+      } ~ post {
         path("unlikePage") {
           parameters("pageId".as[Int], "userId".as[Int]) { (pageId, userId) =>
             updateUnlike(pageId, userId)
@@ -116,17 +117,17 @@ trait UserRoute extends HttpService {
             }
           }
         }
-      }~ post {
+      } ~ post {
         path("pagePost") {
-          parameters("pageId".as[Int], "post".as[String]) { (pageId,post) =>
-            pagePost(pageId,post)
+          parameters("pageId".as[Int], "post".as[String]) { (pageId, post) =>
+            pagePost(pageId, post)
             complete {
               "OK"
             }
           }
         }
       } ~ respondWithMediaType(MediaTypes.`application/json`) {
-        path("page" / IntNumber /"feed") { (pageId) =>
+        path("page" / IntNumber / "feed") { (pageId) =>
           get {
             pagePostList.get(pageId) match {
               case Some(userRoute) => complete(userRoute)
@@ -134,62 +135,89 @@ trait UserRoute extends HttpService {
             }
           }
         }
-      }~ post {
+      } ~ post {
         path("deletePost") {
-          parameters("pageId".as[Int], "postId".as[Int]) { (pageId,postId) =>
-            deletePagePost(pageId,postId)
+          parameters("pageId".as[Int], "postId".as[Int]) { (pageId, postId) =>
+            deletePagePost(pageId, postId)
             complete {
               "OK"
             }
           }
         }
       } ~ respondWithMediaType(MediaTypes.`application/json`) {
-        path("user"/ IntNumber / "friendsList"){ (userId) =>
-          get{
+        path("user" / IntNumber / "friendsList") { (userId) =>
+          get {
             friendList.get(userId) match {
               case Some(userRoute) => complete(userRoute)
               case None            => complete(NotFound -> s"No friends for user id $userId was founds!")
             }
           }
-          
+
         } ~ respondWithMediaType(MediaTypes.`application/json`) {
-        path("user"/ IntNumber / "friendRequestsList"){ (userId) =>
-          get{
-            friendRequestsList.get(userId) match {
-              case Some(userRoute) => complete(userRoute)
-              case None            => complete(NotFound -> s"No friends REQUESTS for user id $userId was founds!")
+          path("user" / IntNumber / "friendRequestsList") { (userId) =>
+            get {
+              friendRequestsList.get(userId) match {
+                case Some(userRoute) => complete(userRoute)
+                case None            => complete(NotFound -> s"No friends REQUESTS for user id $userId was founds!")
+              }
             }
+
           }
-          
         }
-       }
-      } ~ post{
+      } ~ post {
         path("friendRequest") {
-          parameters("userId".as[Int], "friendId".as[Int]){ (userId, friendId) =>
+          parameters("userId".as[Int], "friendId".as[Int]) { (userId, friendId) =>
             friendRequest(userId, friendId)
-            complete{
+            complete {
               "OK"
             }
-            
+
           }
         }
-      } ~ post{
+      } ~ post {
         path("approveDeclineRequest") {
-          parameters("userId".as[Int], "friendId".as[Int],"decision".as[Boolean] ){ (userId, friendId, decision) =>
+          parameters("userId".as[Int], "friendId".as[Int], "decision".as[Boolean]) { (userId, friendId, decision) =>
             approveDeclineRequest(userId, friendId, decision)
-            complete{
+            complete {
               "OK"
             }
-            
+
           }
         }
-      } 
+      } ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("user" / IntNumber / "feed") { (userId) =>
+          get {
+            userPostList.get(userId) match {
+              case Some(userRoute) => complete(userRoute)
+              case None            => complete(NotFound -> s"No posts for page id $userId was found!")
+            }
+          }
+        }
+      } ~ post {
+        path("userPost") {
+          parameters("userId".as[Int], "fromUser".as[Int], "post".as[String]) { (userId, fromUser, post) =>
+            userPost(userId, fromUser, post)
+            complete {
+              "OK"
+            }
+          }
+        }
+      } ~ post {
+        path("deletePost") {
+          parameters("userId".as[Int], "fromUser".as[Int], "postId".as[Int]) { (userId, fromUser, postId) =>
+            deleteUserPost(userId, fromUser, postId)
+            complete {
+              "OK"
+            }
+          }
+        }
+      }
 
   }
 
-//  def incrementLikeCount(pageId: Int, userId: Int) = {
-//    pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
-//  }
+  //  def incrementLikeCount(pageId: Int, userId: Int) = {
+  //    pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
+  //  }
 
   def updatePageLikeList(pageId: Int, userId: Int) = {
     if (!pageLikeList.contains(pageId)) {
@@ -197,110 +225,147 @@ trait UserRoute extends HttpService {
       pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
       //pageLikeList foreach {case (key, value) => println (key + "---->" + value.toList)}
     } else {
-      if (!pageLikeList(pageId).contains(userId)){
+      if (!pageLikeList(pageId).contains(userId)) {
         pageLikeList(pageId) ::= userId
-        pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)  
-      }  
+        pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
+      }
       //pageLikeList foreach {case (key, value) => println (key + "-->" + value.toList)}
     }
 
   }
   def updateUnlike(pageId: Int, userId: Int) = {
     if (pageLikeList.contains(pageId) && pageLikeList(pageId).contains(userId)) {
-    var index = pageLikeList(pageId).indexOf(userId)
-     pageLikeList(pageId) = pageLikeList(pageId).take(index) ++ pageLikeList(pageId).drop(index+1)
-     pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes - 1)
-     //pageLikeList foreach {case (key, value) => println (key + "-->" + value.toList)}
+      var index = pageLikeList(pageId).indexOf(userId)
+      pageLikeList(pageId) = pageLikeList(pageId).take(index) ++ pageLikeList(pageId).drop(index + 1)
+      pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes - 1)
+      //pageLikeList foreach {case (key, value) => println (key + "-->" + value.toList)}
     }
 
   }
-  
-//  def pagePost1(pageId:Int, post:String) = {
-//    if (!pagePostList.contains(pageId)) {
-//      pagePostList += pageId -> PagePost(pageId, List(post))
-//    }else{
-//     var tempPostList:List[String] = pagePostList(pageId).posts
-//     tempPostList ::= post
-//     pagePostList(pageId) = PagePost(pageId, tempPostList)
-//      //pagePostList(pageId) ::= post
-//    }
-//    
-//  }
-  
-  
-  def pagePost(pageId:Int, post:String) = {
-   
+
+  //  def pagePost1(pageId:Int, post:String) = {
+  //    if (!pagePostList.contains(pageId)) {
+  //      pagePostList += pageId -> PagePost(pageId, List(post))
+  //    }else{
+  //     var tempPostList:List[String] = pagePostList(pageId).posts
+  //     tempPostList ::= post
+  //     pagePostList(pageId) = PagePost(pageId, tempPostList)
+  //      //pagePostList(pageId) ::= post
+  //    }
+  //    
+  //  }
+
+  def pagePost(pageId: Int, post: String) = {
+
     if (!pagePostList.contains(pageId)) {
-      pagePostList += pageId -> List(Post(postIdCreator,pageId,post))
-    }else{
-     // println(pagePostList(pageId).toList)
-     postIdCreator = postIdCreator+1
-     pagePostList(pageId) ::= Post(postIdCreator,pageId,post)
-    // println(pagePostList(pageId).toList)
-     
+      pagePostList += pageId -> List(Post(postIdCreator, pageId, post))
+    } else {
+      // println(pagePostList(pageId).toList)
+      postIdCreator = postIdCreator + 1
+      pagePostList(pageId) ::= Post(postIdCreator, pageId, post)
+      // println(pagePostList(pageId).toList)
+
     }
-    
+
   }
-  
-  def deletePagePost(pageId:Int, postId:Int) = {
+
+  def userPost(userId: Int, fromUser: Int, post: String) = {
+
+    var tempFriendList: List[User] = List()
+    var isFriend = false
+    if (!friendList.isEmpty) {
+      tempFriendList = friendList(userId)
+      //Friendship Check
+      for (i <- 0 to tempFriendList.size - 1) {
+        if (tempFriendList(i).userId == fromUser)
+          isFriend = true
+      }
+    }
+
+    if (userId == fromUser || isFriend) {
+      if (!userPostList.contains(userId)) {
+        userPostList += userId -> List(UserPost(postId_Creator, fromUser, post))
+      } else {
+        // println(pagePostList(pageId).toList)
+        postId_Creator = postId_Creator + 1
+        userPostList(userId) ::= UserPost(postId_Creator, fromUser, post)
+        // println(pagePostList(pageId).toList)
+
+      }
+    }
+
+  }
+
+  def deletePagePost(pageId: Int, postId: Int) = {
     if (pagePostList.contains(pageId)) {
-      var tempPostList:List[Post] = pagePostList(pageId)
-      var i=0
-      for( i <- 0 to tempPostList.size-1){
-        if(tempPostList(i).postId==postId){
-          tempPostList = tempPostList.take(i) ++ tempPostList.drop(i+1)
+      var tempPostList: List[Post] = pagePostList(pageId)
+      var i = 0
+      for (i <- 0 to tempPostList.size - 1) {
+        if (tempPostList(i).postId == postId) {
+          tempPostList = tempPostList.take(i) ++ tempPostList.drop(i + 1)
         }
       }
       pagePostList(pageId) = tempPostList
     }
-    
+
   }
-  
-  def friendRequest(userId : Int, friendId : Int) = {
-    if(!friendRequestsList.contains(userId)){
+
+  def deleteUserPost(userId: Int, fromUser: Int, postId: Int) = {
+    if (userPostList.contains(userId)) {
+      var tempPostList: List[UserPost] = userPostList(userId)
+      var i = 0
+      for (i <- 0 to tempPostList.size - 1) {
+        if (tempPostList(i).postId == postId && (tempPostList(i).admin_creator ==userId || tempPostList(i).admin_creator ==fromUser)) {
+          tempPostList = tempPostList.take(i) ++ tempPostList.drop(i + 1)
+        }
+      }
+      userPostList(userId) = tempPostList
+    }
+
+  }
+
+  def friendRequest(userId: Int, friendId: Int) = {
+    if (!friendRequestsList.contains(userId)) {
       friendRequestsList += userId -> List(userList(friendId))
-    } else{
-      if(!friendRequestsList(userId).contains(userList(friendId))){
-      friendRequestsList(userId) ::= userList(friendId)
+    } else {
+      if (!friendRequestsList(userId).contains(userList(friendId))) {
+        friendRequestsList(userId) ::= userList(friendId)
       }
     }
   }
-  
-  def approveDeclineRequest(userId : Int, friendId : Int, decision : Boolean) = {
-    if(!friendRequestsList.isEmpty){
-      
-      var tempRequestsList:List[User] = friendRequestsList(userId) 
-      for(i <- 0 to tempRequestsList.size - 1){
-        if (tempRequestsList(i).userId == friendId){
-          if(decision){
-            if(!friendList.contains(userId)){
+
+  def approveDeclineRequest(userId: Int, friendId: Int, decision: Boolean) = {
+    if (!friendRequestsList.isEmpty) {
+
+      var tempRequestsList: List[User] = friendRequestsList(userId)
+      for (i <- 0 to tempRequestsList.size - 1) {
+        if (tempRequestsList(i).userId == friendId) {
+          if (decision) {
+            if (!friendList.contains(userId)) {
               friendList += userId -> List(userList(friendId))
-              
-               
+
+            } else {
+              friendList(userId) ::= userList(friendId)
+
             }
-              else{
-                friendList(userId) ::= userList(friendId)
-                
-               
-              }
-            
-             if(!friendList.contains(friendId)){
-               friendList += friendId -> List(userList(userId))
-             }else{
-               friendList(friendId) ::= userList(userId)
-             }
-            
-          }else{
-            
+
+            if (!friendList.contains(friendId)) {
+              friendList += friendId -> List(userList(userId))
+            } else {
+              friendList(friendId) ::= userList(userId)
+            }
+
+          } else {
+
           }
-          println(friendRequestsList(userId))
-             tempRequestsList = tempRequestsList.take(i) ++ tempRequestsList.drop(i+1)
-         friendRequestsList(userId) = tempRequestsList
-         println(friendRequestsList(userId))
+          //println(friendRequestsList(userId))
+          tempRequestsList = tempRequestsList.take(i) ++ tempRequestsList.drop(i + 1)
+          friendRequestsList(userId) = tempRequestsList
+          //println(friendRequestsList(userId))
         }
       }
     }
-  }  
+  }
 
 }
 

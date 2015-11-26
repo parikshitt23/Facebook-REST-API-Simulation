@@ -29,6 +29,12 @@ case class RegisterPage(pageId: Int)
 case class GetPage(pageId: Int)
 case class likePage(pageId: Int,userId: Int)
 case class pagePost(pageId: Int)
+case class userPost(userId: Int, fromUser:Int) 
+case class unlikePage(pageId: Int,userId: Int)
+case class getPageFeed(pageId: Int)
+case class getUserFeed(userId: Int) 
+case class deletePagePost(pageId: Int,postId: Int)
+case class deleteUserPost(userId: Int, fromUser:Int, postId:Int) 
 
 object FacebookClient extends App {
 
@@ -54,6 +60,8 @@ object FacebookClient extends App {
     userActors(1) ! likePage(0,1)
     
     userActors(2) ! pagePost(0)
+    
+    userActors(0) ! userPost(0,0)
   }
 
 }
@@ -95,9 +103,46 @@ class Client(system: ActorSystem) extends Actor {
       val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/likePage?pageId="+pageId+"&userId="+userId))
     }
     
+    case unlikePage(pageId: Int,userId: Int) =>{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/unlikePage?pageId="+pageId+"&userId="+userId))
+    }
+    
     case pagePost(pageId: Int) =>{
       val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/pagePost?pageId="+pageId+"&post="+Random.alphanumeric.take(Random.nextInt(140)).mkString))
     }
+    
+    case getPageFeed(pageId: Int) =>{
+      val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/page/"+pageId+"/feed"))
+      //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
+      response.foreach(
+        response=>
+         println(s"Page Feed :\n${response.entity.asString}")                                              
+      )
+    }
+    
+     case deletePagePost(pageId: Int,postId: Int) =>{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/deletePost?pageId="+pageId+"&postId="+postId))
+    }
+    
+    case userPost(userId: Int, fromUser:Int) =>{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/userPost?userId="+userId+"&fromUser="+fromUser+"&post="+Random.alphanumeric.take(Random.nextInt(140)).mkString))
+    }
+    
+    case getUserFeed(userId: Int) => {
+      val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/user/"+userId+"/feed"))
+      //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
+      response.foreach(
+        response=>
+         println(s"User Feed :\n${response.entity.asString}")                                              
+      )
+    }
+    
+    case deleteUserPost(userId: Int, fromUser:Int, postId:Int) =>{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/deletePost?userId="+userId+"&fromUser="+fromUser+"&postId="+postId))
+    }
+    
+   
+    
     
   }
 }
