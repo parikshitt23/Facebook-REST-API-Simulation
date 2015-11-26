@@ -173,7 +173,17 @@ trait UserRoute extends HttpService {
             
           }
         }
-      }
+      } ~ post{
+        path("approveDeclineRequest") {
+          parameters("userId".as[Int], "friendId".as[Int],"decision".as[Boolean] ){ (userId, friendId, decision) =>
+            approveDeclineRequest(userId, friendId, decision)
+            complete{
+              "OK"
+            }
+            
+          }
+        }
+      } 
 
   }
 
@@ -256,6 +266,41 @@ trait UserRoute extends HttpService {
     }
   }
   
+  def approveDeclineRequest(userId : Int, friendId : Int, decision : Boolean) = {
+    if(!friendRequestsList.isEmpty){
+      
+      var tempRequestsList:List[User] = friendRequestsList(userId) 
+      for(i <- 0 to tempRequestsList.size - 1){
+        if (tempRequestsList(i).userId == friendId){
+          if(decision){
+            if(!friendList.contains(userId)){
+              friendList += userId -> List(userList(friendId))
+              
+               
+            }
+              else{
+                friendList(userId) ::= userList(friendId)
+                
+               
+              }
+            
+             if(!friendList.contains(friendId)){
+               friendList += friendId -> List(userList(userId))
+             }else{
+               friendList(friendId) ::= userList(userId)
+             }
+            
+          }else{
+            
+          }
+          println(friendRequestsList(userId))
+             tempRequestsList = tempRequestsList.take(i) ++ tempRequestsList.drop(i+1)
+         friendRequestsList(userId) = tempRequestsList
+         println(friendRequestsList(userId))
+        }
+      }
+    }
+  }  
 
 }
 
