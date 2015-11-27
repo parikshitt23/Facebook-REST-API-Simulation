@@ -7,7 +7,7 @@
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [compile][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->org.scala-lang#scala-library;2.11.7 [compile->default(compile)][0m
 [0m[[0minfo[0m] [0mResolving org.scala-lang#scala-library;2.11.7 ...[0m
-[0m[[0mdebug[0m] [0msbt-chain: Checking cache for: sbt.ivyint.MergedDescriptors@611f4595[0m
+[0m[[0mdebug[0m] [0msbt-chain: Checking cache for: sbt.ivyint.MergedDescriptors@2430be33[0m
 [0m[[0mdebug[0m] [0msbt-chain: module revision found in cache: org.scala-lang#scala-library;2.11.7[0m
 [0m[[0mdebug[0m] [0m	found org.scala-lang#scala-library;2.11.7 in sbt-chain[0m
 [0m[[0mdebug[0m] [0m	[2.11.7] org.scala-lang#scala-library;2.11.7[0m
@@ -392,6 +392,65 @@
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->runtime][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->compile][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->master][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->default(compile)][0m
+[0m[[0minfo[0m] [0mResolving commons-codec#commons-codec;1.10 ...[0m
+[0m[[0mdebug[0m] [0msbt-chain: Checking cache for: dependency: commons-codec#commons-codec;1.10 {compile=[default(compile)]}[0m
+[0m[[0minfo[0m] [0mResolving commons-codec#commons-codec;1.10 ...[0m
+[0m[[0mdebug[0m] [0msbt-chain-delegate: Checking cache for: dependency: commons-codec#commons-codec;1.10 {compile=[default(compile)]}[0m
+[0m[[0mdebug[0m] [0m		tried /home/nikhil/.ivy2/local/commons-codec/commons-codec/1.10/ivys/ivy.xml[0m
+[0m[[0mdebug[0m] [0m	local: no ivy file found for commons-codec#commons-codec;1.10[0m
+[0m[[0mdebug[0m] [0m		tried https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.pom[0m
+[0m[[0mdebug[0m] [0m	public: found md file for commons-codec#commons-codec;1.10[0m
+[0m[[0mdebug[0m] [0m		=> https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.pom (1.10)[0m
+[0m[[0mdebug[0m] [0mdownloading https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.pom ...[0m
+[0m[[0mdebug[0m] [0m	public: downloading https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.pom[0m
+[0m[[0mdebug[0m] [0m	public: downloading https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.pom.sha1[0m
+[0m[[0mdebug[0m] [0msha1 OK for https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.pom[0m
+[0m[[0mdebug[0m] [0m	[SUCCESSFUL ] commons-codec#commons-codec;1.10!commons-codec.pom(pom.original) (233ms)[0m
+[0m[[0minfo[0m] [0mResolving org.apache.commons#commons-parent;35 ...[0m
+[0m[[0mdebug[0m] [0msbt-chain: Checking cache for: dependency: org.apache.commons#commons-parent;35 {}[0m
+[0m[[0minfo[0m] [0mResolving org.apache.commons#commons-parent;35 ...[0m
+[0m[[0mdebug[0m] [0msbt-chain-delegate: Checking cache for: dependency: org.apache.commons#commons-parent;35 {}[0m
+[0m[[0mdebug[0m] [0m		tried /home/nikhil/.ivy2/local/org.apache.commons/commons-parent/35/ivys/ivy.xml[0m
+[0m[[0mdebug[0m] [0m	local: no ivy file found for org.apache.commons#commons-parent;35[0m
+[0m[[0mdebug[0m] [0m		tried https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.pom[0m
+[0m[[0mdebug[0m] [0m	public: found md file for org.apache.commons#commons-parent;35[0m
+[0m[[0mdebug[0m] [0m		=> https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.pom (35)[0m
+[0m[[0mdebug[0m] [0mdownloading https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.pom ...[0m
+[0m[[0mdebug[0m] [0m	public: downloading https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.pom[0m
+[0m[[0mdebug[0m] [0m	public: downloading https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.pom.sha1[0m
+[0m[[0mdebug[0m] [0msha1 OK for https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.pom[0m
+[0m[[0mdebug[0m] [0m	[SUCCESSFUL ] org.apache.commons#commons-parent;35!commons-parent.pom(pom.original) (242ms)[0m
+[0m[[0minfo[0m] [0mResolving org.apache#apache;15 ...[0m
+[0m[[0mdebug[0m] [0msbt-chain: Checking cache for: dependency: org.apache#apache;15 {}[0m
+[0m[[0minfo[0m] [0mResolving org.apache#apache;15 ...[0m
+[0m[[0mdebug[0m] [0msbt-chain-delegate: Checking cache for: dependency: org.apache#apache;15 {}[0m
+[0m[[0mdebug[0m] [0m		tried /home/nikhil/.ivy2/local/org.apache/apache/15/ivys/ivy.xml[0m
+[0m[[0mdebug[0m] [0m	local: no ivy file found for org.apache#apache;15[0m
+[0m[[0mdebug[0m] [0m		tried https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.pom[0m
+[0m[[0mdebug[0m] [0m	public: found md file for org.apache#apache;15[0m
+[0m[[0mdebug[0m] [0m		=> https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.pom (15)[0m
+[0m[[0mdebug[0m] [0mdownloading https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.pom ...[0m
+[0m[[0mdebug[0m] [0m	public: downloading https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.pom[0m
+[0m[[0mdebug[0m] [0m	public: downloading https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.pom.sha1[0m
+[0m[[0mdebug[0m] [0msha1 OK for https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.pom[0m
+[0m[[0mdebug[0m] [0m	[SUCCESSFUL ] org.apache#apache;15!apache.pom(pom.original) (187ms)[0m
+[0m[[0mdebug[0m] [0m		tried /home/nikhil/.ivy2/local/org.apache/apache/15/jars/apache.jar[0m
+[0m[[0mdebug[0m] [0m		tried https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.jar[0m
+[0m[[0mdebug[0m] [0mCLIENT ERROR: Not Found url=https://repo1.maven.org/maven2/org/apache/apache/15/apache-15.jar[0m
+[0m[[0mdebug[0m] [0m		tried http://dl.bintray.com/typesafe/ivy-releases/org.apache/apache/15/jars/apache.jar[0m
+[0m[[0mdebug[0m] [0mCLIENT ERROR: Not Found url=http://dl.bintray.com/typesafe/ivy-releases/org.apache/apache/15/jars/apache.jar[0m
+[0m[[0mdebug[0m] [0m		tried /home/nikhil/.ivy2/local/org.apache.commons/commons-parent/35/jars/commons-parent.jar[0m
+[0m[[0mdebug[0m] [0m		tried https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.jar[0m
+[0m[[0mdebug[0m] [0mCLIENT ERROR: Not Found url=https://repo1.maven.org/maven2/org/apache/commons/commons-parent/35/commons-parent-35.jar[0m
+[0m[[0mdebug[0m] [0m		tried http://dl.bintray.com/typesafe/ivy-releases/org.apache.commons/commons-parent/35/jars/commons-parent.jar[0m
+[0m[[0mdebug[0m] [0mCLIENT ERROR: Not Found url=http://dl.bintray.com/typesafe/ivy-releases/org.apache.commons/commons-parent/35/jars/commons-parent.jar[0m
+[0m[[0mdebug[0m] [0m		tried /home/nikhil/.ivy2/local/commons-codec/commons-codec/1.10/jars/commons-codec.jar[0m
+[0m[[0mdebug[0m] [0m		tried https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.jar[0m
+[0m[[0mdebug[0m] [0m	found commons-codec#commons-codec;1.10 in public[0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->runtime][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->compile][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->master][0m
 [0m[[0mdebug[0m] [0mresolving dependencies for configuration 'runtime'[0m
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [runtime][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [compile][0m
@@ -655,6 +714,10 @@
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->runtime][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->compile][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->master][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->default(compile)][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->runtime][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->compile][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->master][0m
 [0m[[0mdebug[0m] [0mresolving dependencies for configuration 'test'[0m
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [test][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [runtime][0m
@@ -919,6 +982,10 @@
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->runtime][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->compile][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->master][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->default(compile)][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->runtime][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->compile][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->master][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe.akka#akka-testkit_2.11;2.3.9 [test->default(compile)][0m
 [0m[[0minfo[0m] [0mResolving com.typesafe.akka#akka-testkit_2.11;2.3.9 ...[0m
 [0m[[0mdebug[0m] [0msbt-chain: Checking cache for: dependency: com.typesafe.akka#akka-testkit_2.11;2.3.9 {test=[default(compile)]}[0m
@@ -1548,6 +1615,10 @@
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->runtime][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->compile][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->master][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->default(compile)][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->runtime][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->compile][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->master][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [optional][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [provided][0m
 [0m[[0mdebug[0m] [0mresolving dependencies for configuration 'runtime-internal'[0m
@@ -1814,6 +1885,10 @@
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->runtime][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->compile][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->master][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->default(compile)][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->runtime][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->compile][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->master][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [optional][0m
 [0m[[0mdebug[0m] [0mresolving dependencies for configuration 'test-internal'[0m
 [0m[[0mdebug[0m] [0m== resolving dependencies for default#facebookserver_2.11;1.0 [test-internal][0m
@@ -2080,6 +2155,10 @@
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->runtime][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->compile][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe#config;1.2.1 [compile->master][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->default(compile)][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->runtime][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->compile][0m
+[0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->commons-codec#commons-codec;1.10 [compile->master][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe.akka#akka-testkit_2.11;2.3.9 [test->default(compile)][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe.akka#akka-testkit_2.11;2.3.9 [test->runtime][0m
 [0m[[0mdebug[0m] [0m== resolving dependencies default#facebookserver_2.11;1.0->com.typesafe.akka#akka-testkit_2.11;2.3.9 [test->compile][0m
@@ -2439,6 +2518,12 @@
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] io.spray#spray-client_2.11;1.3.2!spray-client_2.11.jar(bundle)[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] io.spray#spray-json_2.11;1.3.1!spray-json_2.11.jar(bundle)[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] com.typesafe#config;1.2.1!config.jar(bundle)[0m
+[0m[[0mdebug[0m] [0m		tried https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.jar[0m
+[0m[[0minfo[0m] [0mdownloading https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.jar ...[0m
+[0m[[0mdebug[0m] [0m	public: downloading https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.jar[0m
+[0m[[0mdebug[0m] [0m	public: downloading https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.jar.sha1[0m
+[0m[[0mdebug[0m] [0msha1 OK for https://repo1.maven.org/maven2/commons-codec/commons-codec/1.10/commons-codec-1.10.jar[0m
+[0m[[0minfo[0m] [0m	[SUCCESSFUL ] commons-codec#commons-codec;1.10!commons-codec.jar (443ms)[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] ch.qos.logback#logback-core;1.1.2!logback-core.jar[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] com.typesafe.scala-logging#scala-logging-api_2.11;2.1.2!scala-logging-api_2.11.jar[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] org.scala-lang#scala-reflect;2.11.0!scala-reflect.jar[0m
@@ -2481,7 +2566,7 @@
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] org.scala-lang.modules#scala-xml_2.11;1.0.4!scala-xml_2.11.jar(bundle)[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] org.scala-lang.modules#scala-parser-combinators_2.11;1.0.4!scala-parser-combinators_2.11.jar(bundle)[0m
 [0m[[0mdebug[0m] [0m	[NOT REQUIRED] jline#jline;2.12.1!jline.jar[0m
-[0m[[0mdebug[0m] [0m:: resolution report :: resolve 2047ms :: artifacts dl 34ms[0m
+[0m[[0mdebug[0m] [0m:: resolution report :: resolve 5861ms :: artifacts dl 698ms[0m
 [0m[[0mdebug[0m] [0m	report for default#facebookserver_2.11;1.0 compile produced in /home/nikhil/workspace/facebookCode/facebook/FacebookServer/target/resolution-cache/reports/default-facebookserver_2.11-compile.xml[0m
 [0m[[0mdebug[0m] [0m	report for default#facebookserver_2.11;1.0 runtime produced in /home/nikhil/workspace/facebookCode/facebook/FacebookServer/target/resolution-cache/reports/default-facebookserver_2.11-runtime.xml[0m
 [0m[[0mdebug[0m] [0m	report for default#facebookserver_2.11;1.0 test produced in /home/nikhil/workspace/facebookCode/facebook/FacebookServer/target/resolution-cache/reports/default-facebookserver_2.11-test.xml[0m
@@ -2495,5 +2580,5 @@
 [0m[[0mdebug[0m] [0m	report for default#facebookserver_2.11;1.0 docs produced in /home/nikhil/workspace/facebookCode/facebook/FacebookServer/target/resolution-cache/reports/default-facebookserver_2.11-docs.xml[0m
 [0m[[0mdebug[0m] [0m	report for default#facebookserver_2.11;1.0 pom produced in /home/nikhil/workspace/facebookCode/facebook/FacebookServer/target/resolution-cache/reports/default-facebookserver_2.11-pom.xml[0m
 [0m[[0mdebug[0m] [0m	report for default#facebookserver_2.11;1.0 scala-tool produced in /home/nikhil/workspace/facebookCode/facebook/FacebookServer/target/resolution-cache/reports/default-facebookserver_2.11-scala-tool.xml[0m
-[0m[[0mdebug[0m] [0m	resolve done (2047ms resolve - 34ms download)[0m
+[0m[[0mdebug[0m] [0m	resolve done (5861ms resolve - 698ms download)[0m
 [0m[[0minfo[0m] [0mDone updating.[0m

@@ -8,6 +8,11 @@ import spray.http.StatusCodes._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 import spray.json.DefaultJsonProtocol
+import java.io._
+import spray.http.{ MediaTypes, BodyPart, MultipartFormData }
+import org.apache.commons.codec.binary
+import org.apache.commons.codec.binary.Base64
+import java.io.FileOutputStream
 //import spray.json.DefaultJsonProtocol._
 
 case class User(userId: Int, name: String, gender: String)
@@ -17,6 +22,11 @@ case class Post(postId: Int, admin_creator: Int, post: String)
 
 case class FriendList(userId: Int, friendList: List[User])
 case class FriendRequestsList(userId: Int, requestsList: List[User])
+case class ImageJson(userId: String, pictureId: String, Image: String)
+
+object ImageJson extends DefaultJsonProtocol {
+  implicit val userFormat = jsonFormat3(ImageJson.apply)
+}
 
 object User extends DefaultJsonProtocol {
   implicit val userFormat = jsonFormat3(User.apply)
@@ -58,6 +68,7 @@ trait UserRoute extends HttpService {
   var userPostList = scala.collection.mutable.Map[Int, List[UserPost]]()
   var friendList = scala.collection.mutable.Map[Int, List[User]]()
   var friendRequestsList = scala.collection.mutable.Map[Int, List[User]]()
+  var postPictureList = scala.collection.mutable.Map[Int, List[ImageJson]]()
   var postIdCreator = 1
   var postId_Creator = 1
 
@@ -189,7 +200,7 @@ trait UserRoute extends HttpService {
           get {
             userPostList.get(userId) match {
               case Some(userRoute) => complete(userRoute)
-              case None            => complete(NotFound -> s"No posts for page id $userId was found!")
+              case None            => complete(NotFound -> s"No posts for user id $userId was found!")
             }
           }
         }
@@ -211,7 +222,35 @@ trait UserRoute extends HttpService {
             }
           }
         }
-      }
+      }  ~ post {
+        path("album") {
+          entity(as[ImageJson]) { (pictureJson) =>
+           setPicture(pictureJson)
+            complete {
+              "OK"
+            }
+          }
+        }
+      } ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("user" / IntNumber / "album") { (userId) =>
+          get {
+            postPictureList.get(userId) match {
+              case Some(userRoute) => complete(userRoute)
+              case None            => complete(NotFound -> s"No pictures for page id $userId was found!")
+            }
+          }
+        }
+      }  ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("user" / IntNumber / "picture"/ IntNumber) { (userId, pictureId) =>
+          get {
+            
+             getPictureIndex(userId, pictureId) match {
+              case Some(userRoute) => complete(userRoute)
+              case None            => complete(NotFound -> s"No pictures for page id $userId was found!")
+            }
+          }
+        }
+      }  
 
   }
 
@@ -258,22 +297,24 @@ trait UserRoute extends HttpService {
   def pagePost(pageId: Int, post: String) = {
 
     if (!pagePostList.contains(pageId)) {
-      pagePostList += pageId -> List(Post(postIdCreator, pageId, post))
+      pagePostList += pageId -> List(Post(100, pageId, post))
     } else {
       // println(pagePostList(pageId).toList)
-      postIdCreator = postIdCreator + 1
-      pagePostList(pageId) ::= Post(postIdCreator, pageId, post)
+      //postIdCreator = postIdCreator + 1
+      pagePostList(pageId) ::= Post(pagePostList(pageId).size+100, pageId, post)
       // println(pagePostList(pageId).toList)
 
     }
 
   }
+  
+ 
 
   def userPost(userId: Int, fromUser: Int, post: String) = {
 
     var tempFriendList: List[User] = List()
     var isFriend = false
-    if (!friendList.isEmpty) {
+    if (!friendList.isEmpty && userId != fromUser) {
       tempFriendList = friendList(userId)
       //Friendship Check
       for (i <- 0 to tempFriendList.size - 1) {
@@ -284,11 +325,11 @@ trait UserRoute extends HttpService {
 
     if (userId == fromUser || isFriend) {
       if (!userPostList.contains(userId)) {
-        userPostList += userId -> List(UserPost(postId_Creator, fromUser, post))
+        userPostList += userId -> List(UserPost(100, fromUser, post))
       } else {
         // println(pagePostList(pageId).toList)
-        postId_Creator = postId_Creator + 1
-        userPostList(userId) ::= UserPost(postId_Creator, fromUser, post)
+        //postId_Creator = postId_Creator + 1
+        userPostList(userId) ::= UserPost(userPostList(userId).size+100, fromUser, post)
         // println(pagePostList(pageId).toList)
 
       }
@@ -315,7 +356,7 @@ trait UserRoute extends HttpService {
       var tempPostList: List[UserPost] = userPostList(userId)
       var i = 0
       for (i <- 0 to tempPostList.size - 1) {
-        if (tempPostList(i).postId == postId && (tempPostList(i).admin_creator ==userId || tempPostList(i).admin_creator ==fromUser)) {
+        if (tempPostList(i).postId == postId && (tempPostList(i).admin_creator == userId || tempPostList(i).admin_creator == fromUser)) {
           tempPostList = tempPostList.take(i) ++ tempPostList.drop(i + 1)
         }
       }
@@ -335,7 +376,7 @@ trait UserRoute extends HttpService {
   }
 
   def approveDeclineRequest(userId: Int, friendId: Int, decision: Boolean) = {
-    if (!friendRequestsList.isEmpty) {
+    if (!friendRequestsList.isEmpty && friendRequestsList.contains(userId)) {
 
       var tempRequestsList: List[User] = friendRequestsList(userId)
       for (i <- 0 to tempRequestsList.size - 1) {
@@ -366,6 +407,31 @@ trait UserRoute extends HttpService {
       }
     }
   }
+  
+  def setPicture(imageJson: ImageJson ) = {
+    if (!postPictureList.contains(imageJson.userId.toInt)) {
+              postPictureList += imageJson.userId.toInt -> List(imageJson)
 
+            } else {
+              postPictureList(imageJson.userId.toInt) ::= imageJson
+            }
+    
+//    var decoded = Base64.decodeBase64(imageJson.Image)
+//    var fos = new FileOutputStream("src/Test.jpg")
+//    fos.write(decoded)
+//    fos.close()
+  }
+  
+  def getPictureIndex(userId: Int,pictureId: Int) : Option[ImageJson]= {
+    var tempPostList: List[ImageJson] = postPictureList(userId)
+      var i = 0
+      for (i <- 0 to tempPostList.size - 1) {
+        if (tempPostList(i).pictureId.toInt == pictureId) {
+          return Some(tempPostList(i))
+        }
+      }
+    return None
+  }
+  
 }
 
