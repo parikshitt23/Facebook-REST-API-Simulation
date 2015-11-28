@@ -19,13 +19,17 @@ case class User(userId: Int, name: String, gender: String)
 case class Page(pageId: Int, pageName: String, likes: Int)
 case class UserPost(postId: Int, admin_creator: Int, post: String)
 case class Post(postId: Int, admin_creator: Int, post: String)
-
 case class FriendList(userId: Int, friendList: List[User])
 case class FriendRequestsList(userId: Int, requestsList: List[User])
-case class ImageJson(userId: String, pictureId: String, Image: String)
+case class userImageJson(userId: String, pictureId: String, Image: String)
+case class pageImageJson(pageId: String, pictureId: String, Image: String)
 
-object ImageJson extends DefaultJsonProtocol {
-  implicit val userFormat = jsonFormat3(ImageJson.apply)
+object userImageJson extends DefaultJsonProtocol {
+  implicit val userFormat = jsonFormat3(userImageJson.apply)
+}
+
+object pageImageJson extends DefaultJsonProtocol {
+  implicit val userFormat = jsonFormat3(pageImageJson.apply)
 }
 
 object User extends DefaultJsonProtocol {
@@ -68,9 +72,10 @@ trait UserRoute extends HttpService {
   var userPostList = scala.collection.mutable.Map[Int, List[UserPost]]()
   var friendList = scala.collection.mutable.Map[Int, List[User]]()
   var friendRequestsList = scala.collection.mutable.Map[Int, List[User]]()
-  var postPictureList = scala.collection.mutable.Map[Int, List[ImageJson]]()
-  var postIdCreator = 1
-  var postId_Creator = 1
+  var postUserPictureList = scala.collection.mutable.Map[Int, List[userImageJson]]()
+  var postPagePictureList = scala.collection.mutable.Map[Int, List[pageImageJson]]()
+  var pagePostCounter = 1
+  var userPostCounter = 1
 
   val routes = {
     respondWithMediaType(MediaTypes.`application/json`) {
@@ -223,9 +228,9 @@ trait UserRoute extends HttpService {
           }
         }
       }  ~ post {
-        path("album") {
-          entity(as[ImageJson]) { (pictureJson) =>
-           setPicture(pictureJson)
+        path("userAlbum") {
+          entity(as[userImageJson]) { (pictureJson) =>
+           setUserPicture(pictureJson)
             complete {
               "OK"
             }
@@ -234,7 +239,7 @@ trait UserRoute extends HttpService {
       } ~ respondWithMediaType(MediaTypes.`application/json`) {
         path("user" / IntNumber / "album") { (userId) =>
           get {
-            postPictureList.get(userId) match {
+            postUserPictureList.get(userId) match {
               case Some(userRoute) => complete(userRoute)
               case None            => complete(NotFound -> s"No pictures for page id $userId was found!")
             }
@@ -244,13 +249,41 @@ trait UserRoute extends HttpService {
         path("user" / IntNumber / "picture"/ IntNumber) { (userId, pictureId) =>
           get {
             
-             getPictureIndex(userId, pictureId) match {
+             getUserPictureIndex(userId, pictureId) match {
               case Some(userRoute) => complete(userRoute)
               case None            => complete(NotFound -> s"No pictures for page id $userId was found!")
             }
           }
         }
-      }  
+      } ~ post {
+        path("pageAlbum") {
+          entity(as[pageImageJson]) { (pictureJson) =>
+           setPagePicture(pictureJson)
+            complete {
+              "OK"
+            }
+          }
+        }
+      } ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("page" / IntNumber / "album") { (pageId) =>
+          get {
+            postPagePictureList.get(pageId) match {
+              case Some(userRoute) => complete(userRoute)
+              case None            => complete(NotFound -> s"No pictures for page id $pageId was found!")
+            }
+          }
+        }
+      }  ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("page" / IntNumber / "picture"/ IntNumber) { (pageId, pictureId) =>
+          get {
+            
+             getPagePictureIndex(pageId, pictureId) match {
+              case Some(userRoute) => complete(userRoute)
+              case None            => complete(NotFound -> s"No pictures for page id $pageId was found!")
+            }
+          }
+        }
+      }    
 
   }
 
@@ -300,7 +333,7 @@ trait UserRoute extends HttpService {
       pagePostList += pageId -> List(Post(100, pageId, post))
     } else {
       // println(pagePostList(pageId).toList)
-      //postIdCreator = postIdCreator + 1
+      userPostCounter = userPostCounter + 1
       pagePostList(pageId) ::= Post(pagePostList(pageId).size+100, pageId, post)
       // println(pagePostList(pageId).toList)
 
@@ -328,7 +361,8 @@ trait UserRoute extends HttpService {
         userPostList += userId -> List(UserPost(100, fromUser, post))
       } else {
         // println(pagePostList(pageId).toList)
-        //postId_Creator = postId_Creator + 1
+        println(userPostCounter)
+        userPostCounter = userPostCounter + 1
         userPostList(userId) ::= UserPost(userPostList(userId).size+100, fromUser, post)
         // println(pagePostList(pageId).toList)
 
@@ -355,8 +389,9 @@ trait UserRoute extends HttpService {
     if (userPostList.contains(userId)) {
       var tempPostList: List[UserPost] = userPostList(userId)
       var i = 0
-      for (i <- 0 to tempPostList.size - 1) {
+      for (i <- 0 to tempPostList.size-1) {
         if (tempPostList(i).postId == postId && (tempPostList(i).admin_creator == userId || tempPostList(i).admin_creator == fromUser)) {
+          println(tempPostList.size +" "+i)
           tempPostList = tempPostList.take(i) ++ tempPostList.drop(i + 1)
         }
       }
@@ -408,22 +443,17 @@ trait UserRoute extends HttpService {
     }
   }
   
-  def setPicture(imageJson: ImageJson ) = {
-    if (!postPictureList.contains(imageJson.userId.toInt)) {
-              postPictureList += imageJson.userId.toInt -> List(imageJson)
+  def setUserPicture(imageJson: userImageJson ) = {
+    if (!postUserPictureList.contains(imageJson.userId.toInt)) {
+              postUserPictureList += imageJson.userId.toInt -> List(imageJson)
 
             } else {
-              postPictureList(imageJson.userId.toInt) ::= imageJson
+              postUserPictureList(imageJson.userId.toInt) ::= imageJson
             }
-    
-//    var decoded = Base64.decodeBase64(imageJson.Image)
-//    var fos = new FileOutputStream("src/Test.jpg")
-//    fos.write(decoded)
-//    fos.close()
   }
   
-  def getPictureIndex(userId: Int,pictureId: Int) : Option[ImageJson]= {
-    var tempPostList: List[ImageJson] = postPictureList(userId)
+  def getUserPictureIndex(userId: Int,pictureId: Int) : Option[userImageJson]= {
+    var tempPostList: List[userImageJson] = postUserPictureList(userId)
       var i = 0
       for (i <- 0 to tempPostList.size - 1) {
         if (tempPostList(i).pictureId.toInt == pictureId) {
@@ -433,5 +463,24 @@ trait UserRoute extends HttpService {
     return None
   }
   
+   def setPagePicture(imageJson: pageImageJson ) = {
+    if (!postPagePictureList.contains(imageJson.pageId.toInt)) {
+              postPagePictureList += imageJson.pageId.toInt -> List(imageJson)
+
+            } else {
+              postPagePictureList(imageJson.pageId.toInt) ::= imageJson
+            }
+  }
+  
+  def getPagePictureIndex(pageId: Int,pictureId: Int) : Option[pageImageJson]= {
+    var tempPostList: List[pageImageJson] = postPagePictureList(pageId)
+      var i = 0
+      for (i <- 0 to tempPostList.size - 1) {
+        if (tempPostList(i).pictureId.toInt == pictureId) {
+          return Some(tempPostList(i))
+        }
+      }
+    return None
+  }
 }
 

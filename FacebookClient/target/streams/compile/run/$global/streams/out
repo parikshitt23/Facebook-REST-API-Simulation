@@ -1,4 +1,4 @@
-[0m[[0minfo[0m] [0mRunning FacebookClient [0m
+[0m[[0minfo[0m] [0mRunning FacebookClient 10000[0m
 [0m[[0mdebug[0m] [0mWaiting for threads to exit or System.exit to be called.[0m
 [0m[[0mdebug[0m] [0m  Classpath:[0m
 [0m[[0mdebug[0m] [0m	/home/nikhil/workspace/facebookCode/facebook/FacebookClient/target/scala-2.11/classes[0m
@@ -28,4 +28,4 @@
 [0m[[0mdebug[0m] [0m	/home/nikhil/.ivy2/cache/commons-codec/commons-codec/jars/commons-codec-1.10.jar[0m
 [0m[[0mdebug[0m] [0mWaiting for thread run-main-0 to terminate.[0m
 [0m[[0mdebug[0m] [0m	Thread run-main-0 exited.[0m
-[0m[[0mdebug[0m] [0mWaiting for thread FacebookClientSystem-akka.actor.default-dispatcher-4 to terminate.[0m
+[0m[[0mdebug[0m] [0mWaiting for thread FacebookClientSystem-akka.actor.default-dispatcher-2 to terminate.[0m
