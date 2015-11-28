@@ -59,7 +59,7 @@ case class initialNetwork(numUsers: Int)
 case class simulateVisitPage(actorType: String)
 case class simulatePostPage(actorType: String)
 case class simulateLikePage(actorType: String)
-case class simulateUnlikePage(actorType: String) 
+case class simulateUnlikePage(actorType: String)
 case class simulateReadPageFeed(actorType: String)
 case class simulateDeletePagePost(actorType: String)
 case class simulatedeleteUserPost(actorType: String)
@@ -71,6 +71,10 @@ case class simulateapproveDeclineRequest(actorType: String)
 case class simulategetFriendList(actorType: String)
 case class simulategetFriendRequestList(actorType: String)
 case class simulatePostPicture(actorType: String)
+case class simulatepostUserPicture(actorType: String)
+case class simulatepostPagePicture(actorType: String)
+case class simulategettUserPicture(actorType: String)
+case class simulategetPagePicture(actorType: String)
 
 object FacebookClient extends App {
 
@@ -130,9 +134,9 @@ class networkSimulator(system: ActorSystem) extends Actor {
       numTextSavyPages = (numActors * 0.18).toInt
       numHighEngagedUsers = (numActors * 0.4).toInt
       numMultiMediaSpecialistPages = (numActors * 0.025).toInt
-      
+
       //props all actors
-      
+
       for (i <- 0 until numMultiMediaSavyUsers) {
         multiMediaSavyUsers += system.actorOf(Props(new Client(system)), name = "multiMediaSavyUsers" + i)
       }
@@ -149,60 +153,71 @@ class networkSimulator(system: ActorSystem) extends Actor {
         multiMediaSpecialistPages += system.actorOf(Props(new Client(system)), name = "multiMediaSpecialistPages" + i)
       }
 
-      
-      
       for (i <- 0 until numMultiMediaSavyUsers) {
         multiMediaSavyUsers(i) ! RegisterUser(i)
       }
       for (i <- 0 until numLowEngagedUsers) {
-        lowEngagedUsers(i) ! RegisterUser(i+numMultiMediaSavyUsers)
+        lowEngagedUsers(i) ! RegisterUser(i + numMultiMediaSavyUsers)
       }
       for (i <- 0 until numTextSavyPages) {
         textSavyPages(i) ! RegisterPage(i)
       }
       for (i <- 0 until numHighEngagedUsers) {
-        highEngagedUsers(i) ! RegisterUser(i+numLowEngagedUsers+numMultiMediaSavyUsers)
+        highEngagedUsers(i) ! RegisterUser(i + numLowEngagedUsers + numMultiMediaSavyUsers)
       }
       for (i <- 0 until (numMultiMediaSpecialistPages)) {
-        multiMediaSpecialistPages(i) ! RegisterPage(i+numTextSavyPages)
+        multiMediaSpecialistPages(i) ! RegisterPage(i + numTextSavyPages)
       }
 
       // broadcast posts
-      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(10, TimeUnit.MILLISECONDS), self, simulateStatusUpdate("C1"))
-      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(40, TimeUnit.MILLISECONDS), self, simulateStatusUpdate("C2"))
-      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(20, TimeUnit.MILLISECONDS), self, simulatePostPage("C3"))
-      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(11, TimeUnit.MILLISECONDS), self, simulateStatusUpdate("C4"))
-      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(880, TimeUnit.MILLISECONDS), self, simulatePostPage("C5"))
-      
+            for (i <- 0 until numMultiMediaSavyUsers) {
+              context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(100, TimeUnit.MILLISECONDS), multiMediaSavyUsers(i), userPost(i, i))  
+            }
+            for (i <- 0 until numLowEngagedUsers) {
+              context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(400, TimeUnit.MILLISECONDS), lowEngagedUsers(i), userPost(i, i))
+            }
+            for (i <- 0 until numTextSavyPages) {
+              context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(200, TimeUnit.MILLISECONDS), textSavyPages(i), pagePost(i))
+            }
+            for (i <- 0 until numHighEngagedUsers) {
+              context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(110, TimeUnit.MILLISECONDS), highEngagedUsers(i), userPost(i, i))
+            }
+            for (i <- 0 until (numMultiMediaSpecialistPages)) {
+              context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(8800, TimeUnit.MILLISECONDS), multiMediaSpecialistPages(i), pagePost(i))
+            }
+
+      // broadcast posts
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(100, TimeUnit.MILLISECONDS), self, simulateStatusUpdate("C1"))
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(400, TimeUnit.MILLISECONDS), self, simulateStatusUpdate("C2"))
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(200, TimeUnit.MILLISECONDS), self, simulatePostPage("C3"))
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(110, TimeUnit.MILLISECONDS), self, simulateStatusUpdate("C4"))
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(8800, TimeUnit.MILLISECONDS), self, simulatePostPage("C5"))
+
       // Read Page feeds
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(800, TimeUnit.MILLISECONDS), self, simulateReadPageFeed("C1"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(500, TimeUnit.MILLISECONDS), self, simulateReadPageFeed("C2"))
-      //context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(200, TimeUnit.MILLISECONDS), self, simulateReadPageFeed("C3"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(100, TimeUnit.MILLISECONDS), self, simulateReadPageFeed("C4"))
-      //context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(8800, TimeUnit.MILLISECONDS), self, simulateReadPageFeed("C5"))
-      
+
       //Read User feeds
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(800, TimeUnit.MILLISECONDS), self, simulateReadUserFeed("C1"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(500, TimeUnit.MILLISECONDS), self, simulateReadUserFeed("C2"))
-      //context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(200, TimeUnit.MILLISECONDS), self, simulateReadPageFeed("C3"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(100, TimeUnit.MILLISECONDS), self, simulateReadUserFeed("C4"))
-      //context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(8800, TimeUnit.MILLISECONDS), self, simulateReadPageFeed("C5"))
-      
+
       //Like Pages
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(500, TimeUnit.MILLISECONDS), self, simulateLikePage("C1"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(2000, TimeUnit.MILLISECONDS), self, simulateLikePage("C2"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(500, TimeUnit.MILLISECONDS), self, simulateLikePage("C4"))
-      
+
       //UnLike Pages
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(5000, TimeUnit.MILLISECONDS), self, simulateUnlikePage("C1"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(5000, TimeUnit.MILLISECONDS), self, simulateUnlikePage("C4"))
-      
-       //Delete Posts
+
+      //Delete Posts
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(15000, TimeUnit.MILLISECONDS), self, simulatedeleteUserPost("C1"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(10000, TimeUnit.MILLISECONDS), self, simulateDeletePagePost("C3"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(15000, TimeUnit.MILLISECONDS), self, simulatedeleteUserPost("C4"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(10000, TimeUnit.MILLISECONDS), self, simulateDeletePagePost("C5"))
-      
+
       // Send and ApprovefriendRequests
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(1000, TimeUnit.MILLISECONDS), self, simulateFriendRequest("C1"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(5000, TimeUnit.MILLISECONDS), self, simulateFriendRequest("C2"))
@@ -210,13 +225,16 @@ class networkSimulator(system: ActorSystem) extends Actor {
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(1000, TimeUnit.MILLISECONDS), self, simulateapproveDeclineRequest("C1"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(5000, TimeUnit.MILLISECONDS), self, simulateapproveDeclineRequest("C2"))
       context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(1000, TimeUnit.MILLISECONDS), self, simulateapproveDeclineRequest("C4"))
-      
-      
-      
-      
+
+      //Post Pictures
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(100, TimeUnit.MILLISECONDS), self, simulatepostUserPicture("C1"))
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(800, TimeUnit.MILLISECONDS), self, simulatepostUserPicture("C2"))
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(880, TimeUnit.MILLISECONDS), self, simulatepostUserPicture("C4"))
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(800, TimeUnit.MILLISECONDS), self, simulatepostPagePicture("C3"))
+      context.system.scheduler.schedule(FiniteDuration(5000, TimeUnit.MILLISECONDS), FiniteDuration(220, TimeUnit.MILLISECONDS), self, simulatepostPagePicture("C5"))
+
       //visitPageIntializer = context.system.scheduler.schedule(FiniteDuration(3000, TimeUnit.MILLISECONDS), FiniteDuration(100, TimeUnit.MILLISECONDS), self, simulateVisitPage("C2"))
 
-            
       //      context.system.scheduler.schedule(FiniteDuration(3000, TimeUnit.MILLISECONDS), FiniteDuration(50000, TimeUnit.MILLISECONDS), self, simulatePostPicture())
     }
 
@@ -259,7 +277,7 @@ class networkSimulator(system: ActorSystem) extends Actor {
       }
 
     }
-    
+
     case simulateUnlikePage(actorType: String) => {
       var numMultiMediaSavyUserIndex = Random.nextInt(numMultiMediaSavyUsers)
       var numLowEngagedUserIndex = Random.nextInt(numLowEngagedUsers)
@@ -305,8 +323,8 @@ class networkSimulator(system: ActorSystem) extends Actor {
       chooseActorType(actorType)
 
       def chooseActorType(choice: String) = choice match {
-        case "C3" => textSavyPages(textSavyPageIndex) ! deletePagePost(textSavyPageIndex,Random.nextInt(10)+100)
-        case "C5" => multiMediaSpecialistPages(multiMediaSpecialistPageIndex) ! deletePagePost(multiMediaSpecialistPageIndex,Random.nextInt(10)+100)
+        case "C3" => textSavyPages(textSavyPageIndex) ! deletePagePost(textSavyPageIndex, Random.nextInt(10) + 100)
+        case "C5" => multiMediaSpecialistPages(multiMediaSpecialistPageIndex) ! deletePagePost(multiMediaSpecialistPageIndex, Random.nextInt(10) + 100)
       }
 
     }
@@ -338,7 +356,7 @@ class networkSimulator(system: ActorSystem) extends Actor {
         case "C2" => lowEngagedUsers(numLowEngagedUserIndex) ! approveDeclineRequest(numLowEngagedUserIndex, Random.nextInt(numUsers), true)
         case "C4" => highEngagedUsers(numHighEngagedUserIndex) ! approveDeclineRequest(numHighEngagedUserIndex, Random.nextInt(numUsers), true)
       }
-      //userActors(actorIndex) ! approveDeclineRequest(actorIndex, friendIndex, true)
+      
     }
 
     case simulateStatusUpdate(actorType: String) => {
@@ -353,7 +371,7 @@ class networkSimulator(system: ActorSystem) extends Actor {
         case "C2" => lowEngagedUsers(numLowEngagedUserIndex) ! userPost(numLowEngagedUserIndex, numLowEngagedUserIndex)
         case "C4" => highEngagedUsers(numHighEngagedUserIndex) ! userPost(numHighEngagedUserIndex, numHighEngagedUserIndex)
       }
-      //userActors(actorIndex) ! userPost(actorIndex, actorIndex)
+      
     }
 
     case simulateReadUserFeed(actorType: String) => {
@@ -366,7 +384,7 @@ class networkSimulator(system: ActorSystem) extends Actor {
         case "C4" => highEngagedUsers(Random.nextInt(numHighEngagedUsers)) ! getUserFeed(Random.nextInt(numUsers))
         case "C5" => multiMediaSpecialistPages(Random.nextInt(numMultiMediaSpecialistPages)) ! getUserFeed(Random.nextInt(numUsers))
       }
-      //userActors(actorIndex) ! getUserFeed(UserIndex)
+      
     }
     case simulatedeleteUserPost(actorType: String) => {
       var numMultiMediaSavyUserIndex = Random.nextInt(numMultiMediaSavyUsers)
@@ -376,13 +394,13 @@ class networkSimulator(system: ActorSystem) extends Actor {
       chooseActorType(actorType)
 
       def chooseActorType(choice: String) = choice match {
-        case "C1" => multiMediaSavyUsers(numMultiMediaSavyUserIndex) ! deleteUserPost(numMultiMediaSavyUserIndex, numMultiMediaSavyUserIndex,Random.nextInt(10)+100)
-        case "C2" => lowEngagedUsers(numLowEngagedUserIndex) ! deleteUserPost(numLowEngagedUserIndex, numLowEngagedUserIndex,Random.nextInt(10)+100)
-        case "C4" => highEngagedUsers(numHighEngagedUserIndex) ! deleteUserPost(numHighEngagedUserIndex, numHighEngagedUserIndex,Random.nextInt(10)+100)
+        case "C1" => multiMediaSavyUsers(numMultiMediaSavyUserIndex) ! deleteUserPost(numMultiMediaSavyUserIndex, numMultiMediaSavyUserIndex, Random.nextInt(10) + 100)
+        case "C2" => lowEngagedUsers(numLowEngagedUserIndex) ! deleteUserPost(numLowEngagedUserIndex, numLowEngagedUserIndex, Random.nextInt(10) + 100)
+        case "C4" => highEngagedUsers(numHighEngagedUserIndex) ! deleteUserPost(numHighEngagedUserIndex, numHighEngagedUserIndex, Random.nextInt(10) + 100)
       }
-      //userActors(actorIndex) ! userPost(actorIndex, actorIndex)
+      
     }
-    
+
     case simulategetFriendList(actorType: String) => {
       chooseActorType(actorType)
 
@@ -393,9 +411,9 @@ class networkSimulator(system: ActorSystem) extends Actor {
         case "C4" => highEngagedUsers(Random.nextInt(numHighEngagedUsers)) ! getFriendList(Random.nextInt(numUsers))
         case "C5" => multiMediaSpecialistPages(Random.nextInt(numMultiMediaSpecialistPages)) ! getFriendList(Random.nextInt(numUsers))
       }
-      //userActors(actorIndex) ! getUserFeed(UserIndex)
+      
     }
-    
+
     case simulategetFriendRequestList(actorType: String) => {
       chooseActorType(actorType)
 
@@ -406,12 +424,64 @@ class networkSimulator(system: ActorSystem) extends Actor {
         case "C4" => highEngagedUsers(Random.nextInt(numHighEngagedUsers)) ! getFriendRequestList(Random.nextInt(numUsers))
         case "C5" => multiMediaSpecialistPages(Random.nextInt(numMultiMediaSpecialistPages)) ! getFriendRequestList(Random.nextInt(numUsers))
       }
-      //userActors(actorIndex) ! getUserFeed(UserIndex)
+      
     }
 
-    case simulatePostPicture(actorType: String) => {
-      //userActors(0) ! postPicture(1, 1)
-      //userActors(0) ! postPicture(1, 2)
+    case simulatepostUserPicture(actorType: String) => {
+      var numMultiMediaSavyUserIndex = Random.nextInt(numMultiMediaSavyUsers)
+      var numLowEngagedUserIndex = Random.nextInt(numLowEngagedUsers)
+      var numHighEngagedUserIndex = Random.nextInt(numHighEngagedUsers)
+
+      chooseActorType(actorType)
+
+      def chooseActorType(choice: String) = choice match {
+        case "C1" => multiMediaSavyUsers(numMultiMediaSavyUserIndex) ! postUserPicture(numMultiMediaSavyUserIndex, Random.nextInt(numUsers))
+        case "C2" => lowEngagedUsers(numLowEngagedUserIndex) ! postUserPicture(numLowEngagedUserIndex, Random.nextInt(numUsers))
+        case "C4" => highEngagedUsers(numHighEngagedUserIndex) ! postUserPicture(numHighEngagedUserIndex, Random.nextInt(numUsers))
+      }
+
+    }
+
+    case simulatepostPagePicture(actorType: String) => {
+      var textSavyPageIndex = Random.nextInt(numTextSavyPages)
+      var multiMediaSpecialistPageIndex = Random.nextInt(numMultiMediaSpecialistPages)
+
+      chooseActorType(actorType)
+
+      def chooseActorType(choice: String) = choice match {
+        case "C3" => textSavyPages(textSavyPageIndex) ! postPagePicture(textSavyPageIndex, Random.nextInt(numPages))
+        case "C5" => multiMediaSpecialistPages(multiMediaSpecialistPageIndex) ! postPagePicture(multiMediaSpecialistPageIndex, Random.nextInt(numPages))
+
+      }
+
+    }
+
+    case simulategettUserPicture(actorType: String) => {
+      var numMultiMediaSavyUserIndex = Random.nextInt(numMultiMediaSavyUsers)
+      var numLowEngagedUserIndex = Random.nextInt(numLowEngagedUsers)
+      var numHighEngagedUserIndex = Random.nextInt(numHighEngagedUsers)
+
+      chooseActorType(actorType)
+
+      def chooseActorType(choice: String) = choice match {
+        case "C1" => multiMediaSavyUsers(numMultiMediaSavyUserIndex) ! postUserPicture(numMultiMediaSavyUserIndex, Random.nextInt(numUsers))
+        case "C2" => lowEngagedUsers(numLowEngagedUserIndex) ! postUserPicture(numLowEngagedUserIndex, Random.nextInt(numUsers))
+        case "C4" => highEngagedUsers(numHighEngagedUserIndex) ! postUserPicture(numHighEngagedUserIndex, Random.nextInt(numUsers))
+      }
+
+    }
+
+    case simulategetPagePicture(actorType: String) => {
+      var textSavyPageIndex = Random.nextInt(numTextSavyPages)
+      var multiMediaSpecialistPageIndex = Random.nextInt(numMultiMediaSpecialistPages)
+
+      chooseActorType(actorType)
+
+      def chooseActorType(choice: String) = choice match {
+        case "C3" => textSavyPages(textSavyPageIndex) ! postPagePicture(textSavyPageIndex, Random.nextInt(numPages))
+        case "C5" => multiMediaSpecialistPages(multiMediaSpecialistPageIndex) ! postPagePicture(multiMediaSpecialistPageIndex, Random.nextInt(numPages))
+
+      }
 
     }
 
@@ -422,6 +492,7 @@ class networkSimulator(system: ActorSystem) extends Actor {
 class Client(system: ActorSystem) extends Actor {
   import system.dispatcher
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
+  val pipeline1: HttpRequest => Future[HttpResponse] = sendReceive
   def receive = {
     case RegisterUser(userId: Int) => {
 
@@ -437,17 +508,17 @@ class Client(system: ActorSystem) extends Actor {
     case GetUser(userId: Int) => {
       val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/user/" + userId))
       //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
-      response.foreach(
-        response =>
-          println(s"User Profile :\n${response.entity.asString}"))
+//      response.foreach(
+//        response =>
+//          println(s"User Profile :\n${response.entity.asString}"))
     }
 
     case GetPage(pageId: Int) => {
       val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/page/" + pageId))
       //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
-//      response.foreach(
-//        response =>
-//          println(s"Page Info :\n${response.entity.asString}"))
+      //      response.foreach(
+      //        response =>
+      //          println(s"Page Info :\n${response.entity.asString}"))
     }
 
     case likePage(pageId: Int, userId: Int) => {
@@ -459,15 +530,15 @@ class Client(system: ActorSystem) extends Actor {
     }
 
     case pagePost(pageId: Int) => {
-      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/pagePost?pageId=" + pageId + "&post=" + Random.alphanumeric.take(Random.nextInt(140)).mkString))
+      val response: Future[HttpResponse] = pipeline1(Post("http://localhost:8080/pagePost?pageId=" + pageId + "&post=" + Random.alphanumeric.take(Random.nextInt(140)).mkString))
     }
 
     case getPageFeed(pageId: Int) => {
       val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/page/" + pageId + "/feed"))
 
-      response.foreach(
-        response =>
-          println(s"Page Feed :\n${response.entity.asString}"))
+//      response.foreach(
+//        response =>
+//          println(s"Page Feed :\n${response.entity.asString}"))
     }
 
     case deletePagePost(pageId: Int, postId: Int) => {
@@ -475,15 +546,15 @@ class Client(system: ActorSystem) extends Actor {
     }
 
     case userPost(userId: Int, fromUser: Int) => {
-      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/userPost?userId=" + userId + "&fromUser=" + fromUser + "&post=" + Random.alphanumeric.take(Random.nextInt(140)).mkString))
+      val response: Future[HttpResponse] = pipeline1(Post("http://localhost:8080/userPost?userId=" + userId + "&fromUser=" + fromUser + "&post=" + Random.alphanumeric.take(Random.nextInt(140)).mkString))
     }
 
     case getUserFeed(userId: Int) => {
       val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/user/" + userId + "/feed"))
       //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
-//      response.foreach(
-//        response =>
-//          println(s"User Feed :\n${response.entity.asString}"))
+      //      response.foreach(
+      //        response =>
+      //          println(s"User Feed :\n${response.entity.asString}"))
     }
 
     case deleteUserPost(userId: Int, fromUser: Int, postId: Int) => {
@@ -514,53 +585,51 @@ class Client(system: ActorSystem) extends Actor {
       val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/approveDeclineRequest?userId=" + userId + "&friendId=" + friendId + "&decision=" + decision))
     }
 
-case postUserPicture(userId: Int, pictureId: Int) => {
-      
+    case postUserPicture(userId: Int, pictureId: Int) => {
+
       val byteArray = Files.readAllBytes(Paths.get("src/abc.jpg"))
-      println(byteArray)
+      //println(byteArray)
       val base64String = Base64.encodeBase64String(byteArray);
       val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-       val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/userAlbum",HttpEntity(MediaTypes.`application/json`,s"""{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/userAlbum", HttpEntity(MediaTypes.`application/json`, s"""{
         "userId": "$userId",
         "pictureId" : "$pictureId", 
         "Image": "$base64String"
     }""")))
-    
+
     }
 
-case getUserPicture(userId: Int, pictureId: Int) => {
-  val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/user/" + userId + "/picture/"+pictureId))
+    case getUserPicture(userId: Int, pictureId: Int) => {
+      val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/user/" + userId + "/picture/" + pictureId))
       //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
-//      response.foreach(
-//        response =>
-//          println(s"picture  :\n${response.entity.asString}"))
-  
-}
+      //      response.foreach(
+      //        response =>
+      //          println(s"picture  :\n${response.entity.asString}"))
 
-case postPagePicture(pageId: Int, pictureId: Int) => {
-      
+    }
+
+    case postPagePicture(pageId: Int, pictureId: Int) => {
+
       val byteArray = Files.readAllBytes(Paths.get("src/abc.jpg"))
-      println(byteArray)
+      //println(byteArray)
       val base64String = Base64.encodeBase64String(byteArray);
       val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
-       val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/pageAlbum",HttpEntity(MediaTypes.`application/json`,s"""{
+      val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/pageAlbum", HttpEntity(MediaTypes.`application/json`, s"""{
         "pageId": "$pageId",
         "pictureId" : "$pictureId", 
         "Image": "$base64String"
     }""")))
-    
+
     }
 
-case getPagePicture(pageId: Int, pictureId: Int) => {
-  val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/page/" + pageId + "/picture/"+pictureId))
+    case getPagePicture(pageId: Int, pictureId: Int) => {
+      val response: Future[HttpResponse] = pipeline(Get("http://localhost:8080/page/" + pageId + "/picture/" + pictureId))
       //val response: Future[HttpResponse] = pipeline(Post("http://localhost:8080/registerUser?userId=0&name=nikhil&gender=male"))
-//      response.foreach(
-//        response =>
-//          println(s"picture  :\n${response.entity.asString}"))
-  
-}
+      //      response.foreach(
+      //        response =>
+      //          println(s"picture  :\n${response.entity.asString}"))
 
-   
+    }
 
   }
 }
