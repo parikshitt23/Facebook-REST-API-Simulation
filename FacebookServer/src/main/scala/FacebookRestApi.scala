@@ -1,18 +1,30 @@
 
 import akka.actor.Actor
+import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.actor._
+import akka.actor.Actor
+import akka.actor.ActorDSL._
+import scala.concurrent.Future
+import akka.actor.actorRef2Scala
+import akka.routing.RoundRobinRouter
+import scala.concurrent.Await
 import spray.routing.HttpService
 import spray.http.MediaTypes
+import akka.pattern.ask
 import spray.httpx.SprayJsonSupport._
 import spray.routing.HttpServiceActor
 import spray.http.StatusCodes._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
+import scala.concurrent.duration._
 import spray.json.DefaultJsonProtocol
 import java.io._
 import spray.http.{ MediaTypes, BodyPart, MultipartFormData }
 import org.apache.commons.codec.binary
 import org.apache.commons.codec.binary.Base64
 import java.io.FileOutputStream
+import akka.util.Timeout
 //import spray.json.DefaultJsonProtocol._
 
 case class User(userId: Int, name: String, gender: String)
@@ -23,6 +35,22 @@ case class FriendList(userId: Int, friendList: List[User])
 case class FriendRequestsList(userId: Int, requestsList: List[User])
 case class userImageJson(userId: String, pictureId: String, Image: String)
 case class pageImageJson(pageId: String, pictureId: String, Image: String)
+case class statistics(pagePost_Count: Int, userPost_Count: Int, Total_Number_of_Posts: Int, picture_Post_count: Int, Number_of_friendRequests_sent: Int)
+case class setPageList(userList: scala.collection.mutable.Map[Int, Page])
+case class setUserList(userListFrom: scala.collection.mutable.Map[Int, User])
+case class updatePageLikeList(pageId: Int, userId: Int, pageList: scala.collection.mutable.Map[Int, Page], pageLikeList: scala.collection.mutable.Map[Int, List[Int]])
+//*********************************************************************************************************************
+case class ObjectForLike(pageList: scala.collection.mutable.Map[Int, Page], pageLikeList: scala.collection.mutable.Map[Int, List[Int]])
+case class pagePost(pageId: Int, post: String, pagePostList: scala.collection.mutable.Map[Int, List[Post]])
+case class userPostMethod(userId: Int, fromUser: Int, post: String, friendList: scala.collection.mutable.Map[Int, List[User]], userPostList: scala.collection.mutable.Map[Int, List[UserPost]])
+case class updateUnlike(pageId: Int, userId: Int, pageList: scala.collection.mutable.Map[Int, Page], pageLikeList: scala.collection.mutable.Map[Int, List[Int]])
+case class deletePagePost(pageId: Int, postId: Int, pagePostList: scala.collection.mutable.Map[Int, List[Post]])
+case class deleteUserPost(userId: Int, fromUser: Int, postId: Int, userPostList: scala.collection.mutable.Map[Int, List[UserPost]])
+case class setUserPicture(imageJson: userImageJson, postUserPictureList: scala.collection.mutable.Map[Int, List[userImageJson]])
+case class setPagePicture(imageJson: pageImageJson, postPagePictureList: scala.collection.mutable.Map[Int, List[pageImageJson]])
+case class friendRequest(userId: Int, friendId: Int, friendRequestsList: scala.collection.mutable.Map[Int, List[User]], userList: scala.collection.mutable.Map[Int, User])
+case class approveDeclineRequest(userId: Int, friendId: Int, decision: Boolean, friendList: scala.collection.mutable.Map[Int, List[User]], friendRequestsList: scala.collection.mutable.Map[Int, List[User]], userList: scala.collection.mutable.Map[Int, User])
+case class ObjectForFriend(friendList: scala.collection.mutable.Map[Int, List[User]], friendRequestsList: scala.collection.mutable.Map[Int, List[User]], userList: scala.collection.mutable.Map[Int, User])
 
 object userImageJson extends DefaultJsonProtocol {
   implicit val userFormat = jsonFormat3(userImageJson.apply)
@@ -50,18 +78,13 @@ object FriendList extends DefaultJsonProtocol {
 object FriendRequestsList extends DefaultJsonProtocol {
   implicit var pageFormat = jsonFormat2(FriendRequestsList.apply)
 }
+object statistics extends DefaultJsonProtocol {
+  implicit var pageFormat = jsonFormat5(statistics.apply)
+}
+
 
 class ServerActor extends HttpServiceActor {
   override def actorRefFactory = context
-
-  val userRoute = new UserRoute {
-    override implicit def actorRefFactory = context
-  }
-
-  def receive = runRoute(userRoute.routes)
-}
-
-trait UserRoute extends HttpService {
   implicit def executionContext = actorRefFactory.dispatcher
 
   var userList = scala.collection.mutable.Map[Int, User]()
@@ -74,8 +97,14 @@ trait UserRoute extends HttpService {
   var friendRequestsList = scala.collection.mutable.Map[Int, List[User]]()
   var postUserPictureList = scala.collection.mutable.Map[Int, List[userImageJson]]()
   var postPagePictureList = scala.collection.mutable.Map[Int, List[pageImageJson]]()
-  var pagePostCounter = 1
-  var userPostCounter = 1
+  var pagePostCounter = 0
+  var userPostCounter = 0
+  var totalPostCounter = 0
+  var picturePostCount = 0
+  var friendRequestSent = 0
+  var stat: statistics = null
+  val worker = actorRefFactory.actorOf(
+    Props[ServerWorker].withRouter(RoundRobinRouter(nrOfInstances = 1000)), name = "worker")
 
   val routes = {
     respondWithMediaType(MediaTypes.`application/json`) {
@@ -92,6 +121,7 @@ trait UserRoute extends HttpService {
         path("registerUser") {
           parameters("userId".as[Int], "name".as[String], "gender".as[String]) { (userId, name, gender) =>
             userList += userId -> User(userId, name, gender)
+            //worker ! setUserList(userList)
             complete {
               "User Created - " + name
             }
@@ -101,6 +131,7 @@ trait UserRoute extends HttpService {
         path("registerPage") {
           parameters("pageId".as[Int], "pageName".as[String]) { (pageId, pageName) =>
             pageList += pageId -> Page(pageId, pageName, 0)
+            //worker ! setPageList(pageList)
             complete {
               "Page Created - " + pageName
             }
@@ -118,7 +149,16 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("likePage") {
           parameters("pageId".as[Int], "userId".as[Int]) { (pageId, userId) =>
-            updatePageLikeList(pageId, userId)
+            //*********************************************************************************************************************
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[ObjectForLike] = ask(worker, updatePageLikeList(pageId, userId, pageList, pageLikeList)).mapTo[ObjectForLike]
+            future onSuccess {
+              case result => {
+                pageList = result.pageList
+                pageLikeList = result.pageLikeList
+              }
+
+            }
             complete {
               "OK"
             }
@@ -127,7 +167,14 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("unlikePage") {
           parameters("pageId".as[Int], "userId".as[Int]) { (pageId, userId) =>
-            updateUnlike(pageId, userId)
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[ObjectForLike] = ask(worker, updateUnlike(pageId, userId, pageList, pageLikeList)).mapTo[ObjectForLike]
+            future onSuccess {
+              case result => {
+                pageList = result.pageList
+                pageLikeList = result.pageLikeList
+              }
+            }
             complete {
               "OK"
             }
@@ -136,7 +183,17 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("pagePost") {
           parameters("pageId".as[Int], "post".as[String]) { (pageId, post) =>
-            pagePost(pageId, post)
+
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[scala.collection.mutable.Map[Int, List[Post]]] = ask(worker, pagePost(pageId, post, pagePostList)).mapTo[scala.collection.mutable.Map[Int, List[Post]]]
+            future onSuccess {
+              case result => {
+                pagePostCounter = pagePostCounter + 1
+                pagePostList = result
+              }
+
+            }
+
             complete {
               "OK"
             }
@@ -154,7 +211,18 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("deletePost") {
           parameters("pageId".as[Int], "postId".as[Int]) { (pageId, postId) =>
-            deletePagePost(pageId, postId)
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[scala.collection.mutable.Map[Int, List[Post]]] = ask(worker, deletePagePost(pageId, postId, pagePostList)).mapTo[scala.collection.mutable.Map[Int, List[Post]]]
+            future onSuccess {
+              case result => {
+                userPostCounter = userPostCounter + 1
+                totalPostCounter = totalPostCounter + 1
+                //println(userPostCounter)
+                pagePostList = result
+              }
+
+            }
+
             complete {
               "OK"
             }
@@ -183,7 +251,15 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("friendRequest") {
           parameters("userId".as[Int], "friendId".as[Int]) { (userId, friendId) =>
-            friendRequest(userId, friendId)
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[scala.collection.mutable.Map[Int, List[User]]] = ask(worker, friendRequest(userId, friendId, friendRequestsList, userList)).mapTo[scala.collection.mutable.Map[Int, List[User]]]
+            future onSuccess {
+              case result => {
+                friendRequestSent = friendRequestSent + 1
+                friendRequestsList = result
+              }
+
+            }
             complete {
               "OK"
             }
@@ -193,7 +269,16 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("approveDeclineRequest") {
           parameters("userId".as[Int], "friendId".as[Int], "decision".as[Boolean]) { (userId, friendId, decision) =>
-            approveDeclineRequest(userId, friendId, decision)
+
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[ObjectForFriend] = ask(worker, approveDeclineRequest(userId, friendId, decision, friendList, friendRequestsList, userList)).mapTo[ObjectForFriend]
+            future onSuccess {
+              case result => {
+                friendRequestsList = result.friendRequestsList
+                friendList = result.friendList
+                userList = result.userList
+              }
+            }
             complete {
               "OK"
             }
@@ -212,7 +297,16 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("userPost") {
           parameters("userId".as[Int], "fromUser".as[Int], "post".as[String]) { (userId, fromUser, post) =>
-            userPost(userId, fromUser, post)
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[scala.collection.mutable.Map[Int, List[UserPost]]] = ask(worker, userPostMethod(userId, fromUser, post, friendList, userPostList)).mapTo[scala.collection.mutable.Map[Int, List[UserPost]]]
+            future onSuccess {
+              case result => {
+                userPostCounter = userPostCounter + 1
+                userPostList = result
+              }
+
+            }
+
             complete {
               "OK"
             }
@@ -221,16 +315,34 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("deletePost") {
           parameters("userId".as[Int], "fromUser".as[Int], "postId".as[Int]) { (userId, fromUser, postId) =>
-            deleteUserPost(userId, fromUser, postId)
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[scala.collection.mutable.Map[Int, List[UserPost]]] = ask(worker, deleteUserPost(userId, fromUser, postId, userPostList)).mapTo[scala.collection.mutable.Map[Int, List[UserPost]]]
+            future onSuccess {
+              case result => {
+                userPostList = result
+              }
+
+            }
+
             complete {
               "OK"
             }
           }
         }
-      }  ~ post {
+      } ~ post {
         path("userAlbum") {
           entity(as[userImageJson]) { (pictureJson) =>
-           setUserPicture(pictureJson)
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[scala.collection.mutable.Map[Int, List[userImageJson]]] = ask(worker, setUserPicture(pictureJson, postUserPictureList)).mapTo[scala.collection.mutable.Map[Int, List[userImageJson]]]
+            future onSuccess {
+              case result => {
+                picturePostCount = picturePostCount + 1
+                postUserPictureList = result
+
+              }
+
+            }
+
             complete {
               "OK"
             }
@@ -245,11 +357,11 @@ trait UserRoute extends HttpService {
             }
           }
         }
-      }  ~ respondWithMediaType(MediaTypes.`application/json`) {
-        path("user" / IntNumber / "picture"/ IntNumber) { (userId, pictureId) =>
+      } ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("user" / IntNumber / "picture" / IntNumber) { (userId, pictureId) =>
           get {
-            
-             getUserPictureIndex(userId, pictureId) match {
+
+            getUserPictureIndex(userId, pictureId) match {
               case Some(userRoute) => complete(userRoute)
               case None            => complete(NotFound -> s"No pictures for page id $userId was found!")
             }
@@ -258,7 +370,14 @@ trait UserRoute extends HttpService {
       } ~ post {
         path("pageAlbum") {
           entity(as[pageImageJson]) { (pictureJson) =>
-           setPagePicture(pictureJson)
+            implicit val timeout = Timeout(5 seconds)
+            var future: Future[scala.collection.mutable.Map[Int, List[pageImageJson]]] = ask(worker, setPagePicture(pictureJson, postPagePictureList)).mapTo[scala.collection.mutable.Map[Int, List[pageImageJson]]]
+            future onSuccess {
+              case result => {
+                picturePostCount = picturePostCount + 1
+                postPagePictureList = result
+              }
+            }
             complete {
               "OK"
             }
@@ -273,214 +392,225 @@ trait UserRoute extends HttpService {
             }
           }
         }
-      }  ~ respondWithMediaType(MediaTypes.`application/json`) {
-        path("page" / IntNumber / "picture"/ IntNumber) { (pageId, pictureId) =>
+      } ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("page" / IntNumber / "picture" / IntNumber) { (pageId, pictureId) =>
           get {
-            
-             getPagePictureIndex(pageId, pictureId) match {
+
+            getPagePictureIndex(pageId, pictureId) match {
               case Some(userRoute) => complete(userRoute)
               case None            => complete(NotFound -> s"No pictures for page id $pageId was found!")
             }
           }
         }
-      }    
-
-  }
-
-  //  def incrementLikeCount(pageId: Int, userId: Int) = {
-  //    pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
-  //  }
-
-  def updatePageLikeList(pageId: Int, userId: Int) = {
-    if (!pageLikeList.contains(pageId)) {
-      pageLikeList += pageId -> List(userId)
-      pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
-      //pageLikeList foreach {case (key, value) => println (key + "---->" + value.toList)}
-    } else {
-      if (!pageLikeList(pageId).contains(userId)) {
-        pageLikeList(pageId) ::= userId
-        pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
+      } ~ respondWithMediaType(MediaTypes.`application/json`) {
+        path("Statistics") {
+          get {
+            complete(statistics(pagePostCounter, userPostCounter, pagePostCounter + userPostCounter, picturePostCount, friendRequestSent))
+          }
+        }
       }
-      //pageLikeList foreach {case (key, value) => println (key + "-->" + value.toList)}
-    }
-
-  }
-  def updateUnlike(pageId: Int, userId: Int) = {
-    if (pageLikeList.contains(pageId) && pageLikeList(pageId).contains(userId)) {
-      var index = pageLikeList(pageId).indexOf(userId)
-      pageLikeList(pageId) = pageLikeList(pageId).take(index) ++ pageLikeList(pageId).drop(index + 1)
-      pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes - 1)
-      //pageLikeList foreach {case (key, value) => println (key + "-->" + value.toList)}
-    }
 
   }
 
-  //  def pagePost1(pageId:Int, post:String) = {
-  //    if (!pagePostList.contains(pageId)) {
-  //      pagePostList += pageId -> PagePost(pageId, List(post))
-  //    }else{
-  //     var tempPostList:List[String] = pagePostList(pageId).posts
-  //     tempPostList ::= post
-  //     pagePostList(pageId) = PagePost(pageId, tempPostList)
-  //      //pagePostList(pageId) ::= post
-  //    }
-  //    
-  //  }
-
-  def pagePost(pageId: Int, post: String) = {
-
-    if (!pagePostList.contains(pageId)) {
-      pagePostList += pageId -> List(Post(100, pageId, post))
-    } else {
-      // println(pagePostList(pageId).toList)
-      userPostCounter = userPostCounter + 1
-      pagePostList(pageId) ::= Post(pagePostList(pageId).size+100, pageId, post)
-      // println(pagePostList(pageId).toList)
-
-    }
-
-  }
-  
- 
-
-  def userPost(userId: Int, fromUser: Int, post: String) = {
-
-    var tempFriendList: List[User] = List()
-    var isFriend = false
-    if (!friendList.isEmpty && userId != fromUser) {
-      tempFriendList = friendList(userId)
-      //Friendship Check
-      for (i <- 0 to tempFriendList.size - 1) {
-        if (tempFriendList(i).userId == fromUser)
-          isFriend = true
-      }
-    }
-
-    if (userId == fromUser || isFriend) {
-      if (!userPostList.contains(userId)) {
-        userPostList += userId -> List(UserPost(100, fromUser, post))
-      } else {
-        // println(pagePostList(pageId).toList)
-        println(userPostCounter)
-        userPostCounter = userPostCounter + 1
-        userPostList(userId) ::= UserPost(userPostList(userId).size+100, fromUser, post)
-        // println(pagePostList(pageId).toList)
-
-      }
-    }
-
-  }
-
-  def deletePagePost(pageId: Int, postId: Int) = {
-    if (pagePostList.contains(pageId)) {
-      var tempPostList: List[Post] = pagePostList(pageId)
+  def getUserPictureIndex(userId: Int, pictureId: Int): Option[userImageJson] = {
+    if (postUserPictureList.contains(userId)) {
+      var tempPostList: List[userImageJson] = postUserPictureList(userId)
       var i = 0
       for (i <- 0 to tempPostList.size - 1) {
-        if (tempPostList(i).postId == postId) {
-          tempPostList = tempPostList.take(i) ++ tempPostList.drop(i + 1)
+        if (tempPostList(i).pictureId.toInt == pictureId) {
+          return Some(tempPostList(i))
         }
       }
-      pagePostList(pageId) = tempPostList
+
     }
 
+    return None
   }
-
-  def deleteUserPost(userId: Int, fromUser: Int, postId: Int) = {
-    if (userPostList.contains(userId)) {
-      var tempPostList: List[UserPost] = userPostList(userId)
+  def getPagePictureIndex(pageId: Int, pictureId: Int): Option[pageImageJson] = {
+    if (postPagePictureList.contains(pageId)) {
+      var tempPostList: List[pageImageJson] = postPagePictureList(pageId)
       var i = 0
-      for (i <- 0 to tempPostList.size-1) {
-        if (tempPostList(i).postId == postId && (tempPostList(i).admin_creator == userId || tempPostList(i).admin_creator == fromUser)) {
-          println(tempPostList.size +" "+i)
-          tempPostList = tempPostList.take(i) ++ tempPostList.drop(i + 1)
+      for (i <- 0 to tempPostList.size - 1) {
+        if (tempPostList(i).pictureId.toInt == pictureId) {
+          return Some(tempPostList(i))
         }
       }
-      userPostList(userId) = tempPostList
     }
+
+    return None
+  }
+
+  def receive = {
+
+    runRoute(routes)
 
   }
 
-  def friendRequest(userId: Int, friendId: Int) = {
-    if (!friendRequestsList.contains(userId)) {
-      friendRequestsList += userId -> List(userList(friendId))
-    } else {
-      if (!friendRequestsList(userId).contains(userList(friendId))) {
-        friendRequestsList(userId) ::= userList(friendId)
+}
+
+class ServerWorker extends Actor {
+  implicit def executionContext = context.dispatcher
+
+  def receive = {
+
+    //*********************************************************************************************************************
+    case updatePageLikeList(pageId: Int, userId: Int, pageList: scala.collection.mutable.Map[Int, Page], pageLikeList: scala.collection.mutable.Map[Int, List[Int]]) => {
+      //println("like"+self)
+      if (!pageLikeList.contains(pageId)) {
+        pageLikeList += pageId -> List(userId)
+        // println(pageList.size)
+        pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
+        //pageLikeList foreach {case (key, value) => println (key + "---->" + value.toList)}
+      } else {
+        if (!pageLikeList(pageId).contains(userId)) {
+          pageLikeList(pageId) ::= userId
+          pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes + 1)
+        }
+
       }
+      sender ! ObjectForLike(pageList, pageLikeList)
     }
-  }
 
-  def approveDeclineRequest(userId: Int, friendId: Int, decision: Boolean) = {
-    if (!friendRequestsList.isEmpty && friendRequestsList.contains(userId)) {
+    case updateUnlike(pageId: Int, userId: Int, pageList: scala.collection.mutable.Map[Int, Page], pageLikeList: scala.collection.mutable.Map[Int, List[Int]]) => {
+      if (pageLikeList.contains(pageId) && pageLikeList(pageId).contains(userId)) {
+        var index = pageLikeList(pageId).indexOf(userId)
+        pageLikeList(pageId) = pageLikeList(pageId).take(index) ++ pageLikeList(pageId).drop(index + 1)
+        pageList(pageId) = Page(pageId, pageList(pageId).pageName, pageList(pageId).likes - 1)
+        //pageLikeList foreach {case (key, value) => println (key + "-->" + value.toList)}
+      }
+      sender ! ObjectForLike(pageList, pageLikeList)
+    }
 
-      var tempRequestsList: List[User] = friendRequestsList(userId)
-      for (i <- 0 to tempRequestsList.size - 1) {
-        if (tempRequestsList(i).userId == friendId) {
-          if (decision) {
-            if (!friendList.contains(userId)) {
-              friendList += userId -> List(userList(friendId))
+    case pagePost(pageId: Int, post: String, pagePostList: scala.collection.mutable.Map[Int, List[Post]]) => {
+
+      if (!pagePostList.contains(pageId)) {
+        pagePostList += pageId -> List(Post(100, pageId, post))
+      } else {
+        pagePostList(pageId) ::= Post(pagePostList(pageId).size + 100, pageId, post)
+
+      }
+      sender ! pagePostList
+    }
+    case deletePagePost(pageId: Int, postId: Int, pagePostList: scala.collection.mutable.Map[Int, List[Post]]) => {
+      if (pagePostList.contains(pageId)) {
+        var tempPostList: List[Post] = pagePostList(pageId)
+        var i = 0
+        for (i <- 0 to tempPostList.size - 1) {
+          if (i < (tempPostList.size - 1) && tempPostList(i).postId == postId) {
+            tempPostList = tempPostList.take(i) ++ tempPostList.drop(i + 1)
+          }
+        }
+        pagePostList(pageId) = tempPostList
+      }
+      sender ! pagePostList
+
+    }
+
+    case userPostMethod(userId: Int, fromUser: Int, post: String, friendList: scala.collection.mutable.Map[Int, List[User]], userPostList: scala.collection.mutable.Map[Int, List[UserPost]]) => {
+
+      var tempFriendList: List[User] = List()
+      var isFriend = false
+      if (!friendList.isEmpty && userId != fromUser) {
+        tempFriendList = friendList(userId)
+        //Friendship Check
+        for (i <- 0 to tempFriendList.size - 1) {
+          if (tempFriendList(i).userId == fromUser)
+            isFriend = true
+        }
+      }
+
+      if (userId == fromUser || isFriend) {
+        if (!userPostList.contains(userId)) {
+          userPostList += userId -> List(UserPost(100, fromUser, post))
+        } else {
+          userPostList(userId) ::= UserPost(userPostList(userId).size + 100, fromUser, post)
+
+        }
+      }
+      sender ! userPostList
+
+    }
+
+    case deleteUserPost(userId: Int, fromUser: Int, postId: Int, userPostList: scala.collection.mutable.Map[Int, List[UserPost]]) => {
+      if (userPostList.contains(userId)) {
+
+        var tempPostList: List[UserPost] = userPostList(userId)
+        for (i <- 0 to tempPostList.size - 1) {
+          if (i < (tempPostList.size - 1) && tempPostList(i).postId == postId && (tempPostList(i).admin_creator == userId || tempPostList(i).admin_creator == fromUser)) {
+            tempPostList = tempPostList.take(i) ++ tempPostList.drop(i + 1)
+          }
+        }
+        userPostList(userId) = tempPostList
+      }
+      sender ! userPostList
+    }
+    case setUserPicture(imageJson: userImageJson, postUserPictureList: scala.collection.mutable.Map[Int, List[userImageJson]]) => {
+      if (!postUserPictureList.contains(imageJson.userId.toInt)) {
+        postUserPictureList += imageJson.userId.toInt -> List(imageJson)
+
+      } else {
+        postUserPictureList(imageJson.userId.toInt) ::= imageJson
+      }
+      sender ! postUserPictureList
+    }
+
+    case setPagePicture(imageJson: pageImageJson, postPagePictureList: scala.collection.mutable.Map[Int, List[pageImageJson]]) => {
+      if (!postPagePictureList.contains(imageJson.pageId.toInt)) {
+        postPagePictureList += imageJson.pageId.toInt -> List(imageJson)
+
+      } else {
+        postPagePictureList(imageJson.pageId.toInt) ::= imageJson
+      }
+      sender ! postPagePictureList
+    }
+
+    case friendRequest(userId: Int, friendId: Int, friendRequestsList: scala.collection.mutable.Map[Int, List[User]], userList: scala.collection.mutable.Map[Int, User]) => {
+      if (!friendRequestsList.contains(userId)) {
+        friendRequestsList += userId -> List(userList(friendId))
+      } else {
+        if (!friendRequestsList(userId).contains(userList(friendId))) {
+          friendRequestsList(userId) ::= userList(friendId)
+        }
+      }
+
+      sender ! friendRequestsList
+    }
+
+    case approveDeclineRequest(userId: Int, friendId: Int, decision: Boolean, friendList: scala.collection.mutable.Map[Int, List[User]], friendRequestsList: scala.collection.mutable.Map[Int, List[User]], userList: scala.collection.mutable.Map[Int, User]) => {
+      if (!friendRequestsList.isEmpty && friendRequestsList.contains(userId)) {
+
+        var tempRequestsList: List[User] = friendRequestsList(userId)
+        for (i <- 0 to tempRequestsList.size - 1) {
+          if (i < (tempRequestsList.size - 1) && tempRequestsList(i).userId == friendId) {
+            if (decision) {
+              if (!friendList.contains(userId)) {
+                friendList += userId -> List(userList(friendId))
+
+              } else {
+                friendList(userId) ::= userList(friendId)
+
+              }
+
+              if (!friendList.contains(friendId)) {
+                friendList += friendId -> List(userList(userId))
+              } else {
+                friendList(friendId) ::= userList(userId)
+              }
 
             } else {
-              friendList(userId) ::= userList(friendId)
 
             }
 
-            if (!friendList.contains(friendId)) {
-              friendList += friendId -> List(userList(userId))
-            } else {
-              friendList(friendId) ::= userList(userId)
-            }
-
-          } else {
+            tempRequestsList = tempRequestsList.take(i) ++ tempRequestsList.drop(i + 1)
+            friendRequestsList(userId) = tempRequestsList
 
           }
-          //println(friendRequestsList(userId))
-          tempRequestsList = tempRequestsList.take(i) ++ tempRequestsList.drop(i + 1)
-          friendRequestsList(userId) = tempRequestsList
-          //println(friendRequestsList(userId))
         }
       }
+
+      sender ! ObjectForFriend(friendList, friendRequestsList, userList)
     }
   }
-  
-  def setUserPicture(imageJson: userImageJson ) = {
-    if (!postUserPictureList.contains(imageJson.userId.toInt)) {
-              postUserPictureList += imageJson.userId.toInt -> List(imageJson)
 
-            } else {
-              postUserPictureList(imageJson.userId.toInt) ::= imageJson
-            }
-  }
-  
-  def getUserPictureIndex(userId: Int,pictureId: Int) : Option[userImageJson]= {
-    var tempPostList: List[userImageJson] = postUserPictureList(userId)
-      var i = 0
-      for (i <- 0 to tempPostList.size - 1) {
-        if (tempPostList(i).pictureId.toInt == pictureId) {
-          return Some(tempPostList(i))
-        }
-      }
-    return None
-  }
-  
-   def setPagePicture(imageJson: pageImageJson ) = {
-    if (!postPagePictureList.contains(imageJson.pageId.toInt)) {
-              postPagePictureList += imageJson.pageId.toInt -> List(imageJson)
-
-            } else {
-              postPagePictureList(imageJson.pageId.toInt) ::= imageJson
-            }
-  }
-  
-  def getPagePictureIndex(pageId: Int,pictureId: Int) : Option[pageImageJson]= {
-    var tempPostList: List[pageImageJson] = postPagePictureList(pageId)
-      var i = 0
-      for (i <- 0 to tempPostList.size - 1) {
-        if (tempPostList(i).pictureId.toInt == pictureId) {
-          return Some(tempPostList(i))
-        }
-      }
-    return None
-  }
 }
 
